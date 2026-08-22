@@ -1,0 +1,9 @@
+{
+  "@@locale": "kk",
+  "featureTitle": "GPA",
+  "noCourses": "Әзірге курстар жоқ. GPA көру үшін курс қосыңыз.",
+  "loadFailed": "Курстарды жүктеу мүмкін болмады. Қайталап көріңіз.",
+  "gpaUndefined": "Есептелетін кредиттер әзірге жеткіліксіз",
+  "gpaValue": "GPA {value}",
+  "courseCount": "{count, plural, =0{Курстар жоқ} one{{count} курс} other{{count} курс}}"
+}

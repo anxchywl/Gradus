@@ -1,0 +1,29 @@
+name: gpa_feature
+description: >-
+  The embeddable GPA feature: domain, application, data and presentation.
+  Mounted by a host application; owns no identity, theme or locale of its own.
+
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0-290.4.beta
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  app_ui:
+    path: ../app_ui
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true

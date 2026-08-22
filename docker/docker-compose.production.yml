@@ -1,0 +1,77 @@
+name: gpa
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - data
+
+  backend:
+    image: ${BACKEND_IMAGE:-gpa-backend:local}
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:?APP_ENV is required}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      AUTH_ADAPTER: ${AUTH_ADAPTER:?AUTH_ADAPTER is required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      REQUEST_BODY_MAX_BYTES: ${REQUEST_BODY_MAX_BYTES:-150000}
+      DEFAULT_PAGE_SIZE: ${DEFAULT_PAGE_SIZE:-20}
+      MAXIMUM_PAGE_SIZE: ${MAXIMUM_PAGE_SIZE:-50}
+    command:
+      - .venv/bin/uvicorn
+      - app.main:create_app
+      - --factory
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --no-access-log
+      - --proxy-headers
+      - --forwarded-allow-ips
+      - 172.16.0.0/12
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - .venv/bin/python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - data
+      - edge
+
+volumes:
+  postgres_data:
+
+networks:
+  # postgres is reachable from the backend and from nothing else
+  data:
+    internal: true
+  edge:

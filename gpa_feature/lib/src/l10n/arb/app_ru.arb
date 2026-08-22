@@ -1,0 +1,9 @@
+{
+  "@@locale": "ru",
+  "featureTitle": "GPA",
+  "noCourses": "Курсов пока нет. Добавьте курс, чтобы увидеть GPA.",
+  "loadFailed": "Не удалось загрузить курсы. Попробуйте ещё раз.",
+  "gpaUndefined": "Пока недостаточно зачтённых кредитов",
+  "gpaValue": "GPA {value}",
+  "courseCount": "{count, plural, =0{Нет курсов} one{{count} курс} few{{count} курса} many{{count} курсов} other{{count} курса}}"
+}

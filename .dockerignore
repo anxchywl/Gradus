@@ -1,0 +1,9 @@
+**/.venv
+**/.dart_tool
+**/build
+**/.git
+**/coverage
+**/__pycache__
+.env
+*.env
+!*.env.example

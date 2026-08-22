@@ -1,0 +1,24 @@
+# local development: data services only. the application runs on the host so
+# iteration does not wait on an image build
+name: gpa
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gpa}
+      POSTGRES_USER: ${POSTGRES_USER:-gpa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gpa}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:
