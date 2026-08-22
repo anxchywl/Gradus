@@ -93,16 +93,19 @@ scope and state from one session cannot structurally survive into the next.
 
 ## Account isolation
 
-Two mechanisms today, because one is not enough:
+Three mechanisms, because one is not enough:
 
 1. **Scope lifetime.** A new token builds a new scope; the old controllers are
    disposed.
 2. **Generation counter.** A load captures it at the start and refuses to write
    its result if it moved, which discards a request that was already in flight
    when the account changed.
+3. **Namespaced storage.** Keys carry the schema version and the account:
+   `gpa_v1_{accountId}_courses`. A layout change discards old entries instead of
+   misreading them, and one student's courses never surface for another.
 
-A third - namespaced local storage keyed by schema version and account - is
-required before anything is persisted on the device. Nothing is, yet.
+`accountId` is supplied by the host **alongside** the token and is never derived
+from it. A token must not be written to disk, not even as part of a key.
 
 ## Localization
 
@@ -146,9 +149,12 @@ supply one simply does not open.
 - **The host authentication resolver is not implemented.** It rejects every
   token by design, because the issuer, audience, signature and claims are
   undecided. The service is therefore not deployable to production as it stands.
-- **There is no persistence.** No ORM model, no migration, no repository beyond
-  an in-memory double. `/health/ready` opens a database session, so it is the
-  only code path that needs one.
+- **Persistence is device-local only.** Courses live in that device's
+  preference store. There is no server-side model, no migration, and no sync:
+  reinstalling the app loses the transcript. `/health/ready` opens a database
+  session, so it is the only backend code path that needs one.
+- **Grade scale selection is not implemented.** `FourPointScale` is the only
+  scale and it is an example, not an institutional ruling.
 - **There is no deployment.** No deploy script, no backup script, no restore
   drill. CI validates and builds; nothing ships.
 - **No golden tests, no device integration tests, no end-to-end run against a
@@ -177,6 +183,8 @@ repository owner privately. Do not include secrets or real student data.
 | Suite | Proves |
 |---|---|
 | `gpa_feature/test/domain` | Credit weighting, pass/fail exclusion, undefined-versus-zero, course validation |
+| `gpa_feature/test/application` | Add, edit, remove, rollback on a failed write, discarding a superseded load |
+| `gpa_feature/test/data` | Round trips, corrupt entries, account separation, no token in a storage key |
 | `gpa_feature/test/boundaries` | Layer rules, single wiring point, no literal user-facing text |
 | `gpa_app/test` | The development gate is closed by default and carries no token |
 | `app_ui/test` | The token surface holds no product concept and no second scale |

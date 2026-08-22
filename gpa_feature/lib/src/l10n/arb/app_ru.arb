@@ -5,5 +5,19 @@
   "loadFailed": "Не удалось загрузить курсы. Попробуйте ещё раз.",
   "gpaUndefined": "Пока недостаточно зачтённых кредитов",
   "gpaValue": "GPA {value}",
-  "courseCount": "{count, plural, =0{Нет курсов} one{{count} курс} few{{count} курса} many{{count} курсов} other{{count} курса}}"
+  "courseCount": "{count, plural, =0{Нет курсов} one{{count} курс} few{{count} курса} many{{count} курсов} other{{count} курса}}",
+  "addCourse": "Добавить курс",
+  "editCourse": "Изменить курс",
+  "courseTitle": "Курс",
+  "courseCredits": "Кредиты",
+  "courseGrade": "Оценка",
+  "gradeNotSet": "Оценки пока нет",
+  "save": "Сохранить",
+  "cancel": "Отмена",
+  "delete": "Удалить",
+  "deleteCourse": "Удалить {title}",
+  "titleRequired": "Введите название курса",
+  "creditsRequired": "Введите кредиты от 0 до 24",
+  "creditsSummary": "Учтено {quality} из {attempted} кредитов",
+  "saveFailed": "Не удалось сохранить. Изменение отменено."
 }

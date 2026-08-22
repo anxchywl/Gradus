@@ -4,11 +4,16 @@
 /// it, and does not decide whether the holder is a student or an operator. All
 /// of that comes back from whatever resolved the session.
 class GpaSession {
-  const GpaSession({required this.accessToken});
+  const GpaSession({required this.accessToken, required this.accountId});
 
   final String accessToken;
 
-  bool get isPresent => accessToken.isNotEmpty;
+  /// A stable identifier for the student, supplied by the host alongside the
+  /// token. Storage keys are namespaced with this rather than with the token,
+  /// because a token must never be written to disk, not even as a key.
+  final String accountId;
+
+  bool get isPresent => accessToken.isNotEmpty && accountId.isNotEmpty;
 }
 
 /// Which data source this build was assembled with.

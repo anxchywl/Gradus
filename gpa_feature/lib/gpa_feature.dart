@@ -20,7 +20,11 @@ import 'src/l10n/gpa_strings.dart';
 import 'src/presentation/gpa_screen.dart';
 
 export 'src/config/gpa_scope.dart'
-    show GpaDependencies, GpaScope, createSampleDependencies;
+    show
+        GpaDependencies,
+        GpaScope,
+        createLocalDependencies,
+        createSampleDependencies;
 export 'src/config/gpa_session.dart' show GpaBackend, GpaConfig, GpaSession;
 export 'src/domain/course.dart' show Course;
 export 'src/domain/errors.dart';

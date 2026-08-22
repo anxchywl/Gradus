@@ -22,6 +22,9 @@ class _FakeCourseRepository implements CourseRepository {
 
   @override
   Future<void> save(List<Course> next) async => courses = next;
+
+  @override
+  String toString() => 'FakeCourseRepository(${courses.length})';
 }
 
 /// A host that registers the delegates a real host would.
@@ -40,7 +43,7 @@ Widget _host({
   ],
   theme: ThemeData(brightness: brightness),
   home: GpaFeature(
-    session: GpaSession(accessToken: token),
+    session: GpaSession(accessToken: token, accountId: 'student-1'),
     dependencies: GpaDependencies(
       courses: repository,
       scales: const _FakeScales(),
@@ -172,7 +175,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: GpaFeature(
-          session: const GpaSession(accessToken: 'a-token'),
+          session: const GpaSession(
+            accessToken: 'a-token',
+            accountId: 'student-1',
+          ),
           dependencies: GpaDependencies(
             courses: _FakeCourseRepository(),
             scales: const _FakeScales(),
@@ -187,5 +193,76 @@ void main() {
       find.text('No courses yet. Add one to see your GPA.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+    'a course can be added through the form and changes the average',
+    (tester) async {
+      final repository = _FakeCourseRepository();
+      await tester.pumpWidget(_host(repository: repository));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'Linear Algebra',
+      );
+      await tester.enterText(find.byType(TextFormField).last, '3');
+      await tester.tap(find.byType(DropdownButtonFormField<Grade?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('A').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Linear Algebra'), findsOneWidget);
+      expect(find.textContaining('4.00'), findsOneWidget);
+      expect(repository.courses, hasLength(1));
+    },
+  );
+
+  testWidgets('the form refuses a blank title and bad credits', (tester) async {
+    await tester.pumpWidget(_host(repository: _FakeCourseRepository()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).last, '99');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter a course name'), findsOneWidget);
+    expect(find.text('Enter credits between 0 and 24'), findsOneWidget);
+  });
+
+  testWidgets('a course can be deleted', (tester) async {
+    final repository = _FakeCourseRepository(courses: [_course('1', 3)]);
+    await tester.pumpWidget(_host(repository: repository));
+    await tester.pumpAndSettle();
+    expect(find.text('Course 1'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Course 1'), findsNothing);
+    expect(repository.courses, isEmpty);
+  });
+
+  testWidgets('the delete control carries a semantics label', (tester) async {
+    // the semantics tree is not built unless a test asks for it
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _host(repository: _FakeCourseRepository(courses: [_course('1', 3)])),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.bySemanticsLabel('Delete Course 1'),
+      findsOneWidget,
+      reason: 'an icon-only control needs a label a screen reader can read',
+    );
+    semantics.dispose();
   });
 }

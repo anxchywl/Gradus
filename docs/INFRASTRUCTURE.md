@@ -71,7 +71,7 @@ One command runs everything CI runs:
 | Client format | `dart format --output=none --set-exit-if-changed lib test` |
 | Client analyze | `flutter analyze --no-pub --fatal-infos` |
 | Client tests | `flutter test --no-pub --coverage` |
-| Client coverage | `./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 70` |
+| Client coverage | `./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 85` |
 
 CI additionally runs gitleaks over the full history, osv-scanner on both
 lockfiles, and a debug Android build. Both scanner binaries are checksum-verified

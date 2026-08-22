@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import '../application/gpa_controller.dart';
 import '../data/in_memory_course_repository.dart';
+import '../data/preferences_course_repository.dart';
+import '../domain/grade.dart';
 import '../domain/repositories.dart';
 import 'gpa_session.dart';
 
@@ -15,9 +17,19 @@ class GpaDependencies {
   final GradeScaleRepository scales;
 }
 
+/// In-memory only. For tests and for previewing without touching the device.
 GpaDependencies createSampleDependencies() => GpaDependencies(
   courses: InMemoryCourseRepository(),
   scales: const StaticGradeScaleRepository(),
+);
+
+/// Courses persisted on this device, namespaced to one account.
+GpaDependencies createLocalDependencies({
+  required String accountId,
+  GradeScale scale = const FourPointScale(),
+}) => GpaDependencies(
+  courses: PreferencesCourseRepository(accountId: accountId, scale: scale),
+  scales: StaticGradeScaleRepository(scale),
 );
 
 /// Owns the controllers for one mounted session. A new token builds a new
@@ -28,7 +40,10 @@ class GpaScope extends InheritedWidget {
     required this.session,
     required GpaDependencies dependencies,
     required super.child,
-  }) : gpa = GpaController(courses: dependencies.courses);
+  }) : gpa = GpaController(
+         courses: dependencies.courses,
+         scales: dependencies.scales,
+       );
 
   final GpaSession session;
   final GpaController gpa;

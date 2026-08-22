@@ -5,5 +5,19 @@
   "loadFailed": "Курстарды жүктеу мүмкін болмады. Қайталап көріңіз.",
   "gpaUndefined": "Есептелетін кредиттер әзірге жеткіліксіз",
   "gpaValue": "GPA {value}",
-  "courseCount": "{count, plural, =0{Курстар жоқ} one{{count} курс} other{{count} курс}}"
+  "courseCount": "{count, plural, =0{Курстар жоқ} one{{count} курс} other{{count} курс}}",
+  "addCourse": "Курс қосу",
+  "editCourse": "Курсты өзгерту",
+  "courseTitle": "Курс",
+  "courseCredits": "Кредиттер",
+  "courseGrade": "Баға",
+  "gradeNotSet": "Баға әлі қойылмаған",
+  "save": "Сақтау",
+  "cancel": "Бас тарту",
+  "delete": "Жою",
+  "deleteCourse": "{title} жою",
+  "titleRequired": "Курс атауын енгізіңіз",
+  "creditsRequired": "0 мен 24 аралығындағы кредитті енгізіңіз",
+  "creditsSummary": "{attempted} кредиттің {quality} есептелді",
+  "saveFailed": "Сақтау мүмкін болмады. Өзгеріс қайтарылды."
 }

@@ -4,8 +4,17 @@ import 'package:gpa_feature/gpa_feature.dart';
 void main() {
   group('GpaSession', () {
     test('an empty token is not a session', () {
-      expect(const GpaSession(accessToken: '').isPresent, isFalse);
-      expect(const GpaSession(accessToken: 'a-token').isPresent, isTrue);
+      expect(
+        const GpaSession(accessToken: '', accountId: 'student-1').isPresent,
+        isFalse,
+      );
+      expect(
+        const GpaSession(
+          accessToken: 'a-token',
+          accountId: 'student-1',
+        ).isPresent,
+        isTrue,
+      );
     });
   });
 

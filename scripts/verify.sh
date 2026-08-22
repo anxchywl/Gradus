@@ -34,6 +34,6 @@ for package in app_ui gpa_feature gpa_app; do
 done
 
 echo "==> coverage"
-./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 70
+./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 85
 
 echo "==> all checks passed"

@@ -1,21 +1,79 @@
 {
   "@@locale": "en",
   "featureTitle": "GPA",
-  "@featureTitle": { "description": "Title of the GPA feature screen" },
+  "@featureTitle": {
+    "description": "Title of the GPA feature screen"
+  },
   "noCourses": "No courses yet. Add one to see your GPA.",
-  "@noCourses": { "description": "Empty state on the GPA screen" },
+  "@noCourses": {
+    "description": "Empty state on the GPA screen"
+  },
   "loadFailed": "Could not load your courses. Try again.",
-  "@loadFailed": { "description": "Error state on the GPA screen" },
+  "@loadFailed": {
+    "description": "Error state on the GPA screen"
+  },
   "gpaUndefined": "Not enough graded credits yet",
-  "@gpaUndefined": { "description": "Shown when nothing counts toward the average yet" },
+  "@gpaUndefined": {
+    "description": "Shown when nothing counts toward the average yet"
+  },
   "gpaValue": "GPA {value}",
   "@gpaValue": {
     "description": "The computed grade point average",
-    "placeholders": { "value": { "type": "double", "format": "decimalPatternDigits", "optionalParameters": { "decimalDigits": 2 } } }
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 2
+        }
+      }
+    }
   },
   "courseCount": "{count, plural, =0{No courses} =1{1 course} other{{count} courses}}",
   "@courseCount": {
     "description": "Number of courses counted; exercises plural categories",
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addCourse": "Add course",
+  "editCourse": "Edit course",
+  "courseTitle": "Course",
+  "courseCredits": "Credits",
+  "courseGrade": "Grade",
+  "gradeNotSet": "Not graded yet",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "deleteCourse": "Delete {title}",
+  "titleRequired": "Enter a course name",
+  "creditsRequired": "Enter credits between 0 and 24",
+  "creditsSummary": "{quality} of {attempted} credits counted",
+  "saveFailed": "Could not save. Your change was undone.",
+  "@addCourse": {
+    "description": "Button that opens the new-course form"
+  },
+  "@deleteCourse": {
+    "description": "Semantics label for the delete control",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@creditsSummary": {
+    "description": "How many credits count toward the average out of those attempted",
+    "placeholders": {
+      "quality": {
+        "type": "double",
+        "format": "decimalPattern"
+      },
+      "attempted": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
   }
 }

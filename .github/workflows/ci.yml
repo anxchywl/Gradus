@@ -139,7 +139,7 @@ jobs:
           (cd gpa_feature && flutter test --no-pub --coverage)
 
       - name: Enforce coverage floor
-        run: ./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 70
+        run: ./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 85
 
   android-build:
     name: Android debug build

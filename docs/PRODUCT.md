@@ -1,6 +1,8 @@
 # GPA Product
 
-**This document is a placeholder. The product is not specified yet.**
+**Partly specified.** A student can enter courses by hand and see a
+credit-weighted average, stored on their own device. Everything about importing
+data is still open — see [decisions/0001](./decisions/0001-course-sync-and-moodle.md).
 
 Nothing below is a decision. It records what is known, what is assumed, and what
 has to be answered before the first feature endpoint or screen is written. Do
@@ -11,6 +13,11 @@ not treat an assumption here as a rule, and do not implement one without asking.
 A GPA tool for university students, mounted inside the university superapp as
 one feature among several. The superapp owns identity; this feature never signs
 anyone in.
+
+Implemented: add, edit and delete a course with a title, credit weight and
+optional grade; a credit-weighted average that excludes pass/fail from the
+average while still counting it as attempted; device-local persistence
+namespaced per account.
 
 ## What is assumed, pending confirmation
 

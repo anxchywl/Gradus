@@ -66,8 +66,9 @@ class _Host extends StatelessWidget {
       // debug affordance only; it changes which token is sent, never a claim
       onLongPress: onSwitchRole,
       child: GpaFeature(
-        session: GpaSession(accessToken: token),
-        dependencies: createSampleDependencies(),
+        session: GpaSession(accessToken: token, accountId: role.name),
+        // courses persist on this device, namespaced per development identity
+        dependencies: createLocalDependencies(accountId: role.name),
         config: const GpaConfig.sample(),
       ),
     );
