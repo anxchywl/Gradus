@@ -9,6 +9,7 @@ touching:
 - Controls and how each is verified: `docs/SECURITY.md`
 - Endpoints and wire shapes: `docs/API.md`
 - Setup, checks, deployment, recovery: `docs/INFRASTRUCTURE.md`
+- Decisions taken and integrations deferred: `docs/decisions/`
 
 Before reporting any change complete, run `./scripts/verify.sh` and report its
 actual result.
