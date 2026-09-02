@@ -1,4 +1,4 @@
-name: gpa
+name: gradus
 
 services:
   postgres:
@@ -21,7 +21,7 @@ services:
       - data
 
   backend:
-    image: ${BACKEND_IMAGE:-gpa-backend:local}
+    image: ${BACKEND_IMAGE:-gradus-backend:local}
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:?APP_ENV is required}

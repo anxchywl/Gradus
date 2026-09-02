@@ -40,8 +40,8 @@ jobs:
               - 'backend/**'
             flutter:
               - 'app_ui/**'
-              - 'gpa_feature/**'
-              - 'gpa_app/**'
+              - 'gradus_feature/**'
+              - 'gradus_app/**'
             ci:
               - '.github/workflows/**'
               - 'scripts/**'
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_ENV: test
-      DATABASE_URL: postgresql+asyncpg://gpa:gpa@localhost:5432/gpa
+      DATABASE_URL: postgresql+asyncpg://gradus:gradus@localhost:5432/gradus
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -112,34 +112,34 @@ jobs:
 
       - name: Resolve dependencies
         run: |
-          for package in app_ui gpa_feature gpa_app; do
+          for package in app_ui gradus_feature gradus_app; do
             (cd "$package" && flutter pub get)
           done
 
       - name: Generate feature localizations
-        working-directory: gpa_feature
+        working-directory: gradus_feature
         run: flutter gen-l10n
 
       - name: Check formatting
         run: |
-          for package in app_ui gpa_feature gpa_app; do
+          for package in app_ui gradus_feature gradus_app; do
             (cd "$package" && dart format --output=none --set-exit-if-changed lib test)
           done
 
       - name: Analyze
         run: |
-          for package in app_ui gpa_feature gpa_app; do
+          for package in app_ui gradus_feature gradus_app; do
             (cd "$package" && flutter analyze --no-pub --fatal-infos)
           done
 
       - name: Test
         run: |
           (cd app_ui && flutter test --no-pub)
-          (cd gpa_app && flutter test --no-pub)
-          (cd gpa_feature && flutter test --no-pub --coverage)
+          (cd gradus_app && flutter test --no-pub)
+          (cd gradus_feature && flutter test --no-pub --coverage)
 
       - name: Enforce coverage floor
-        run: ./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 85
+        run: ./scripts/coverage_floor.sh gradus_feature/coverage/lcov.info 85
 
   android-build:
     name: Android debug build
@@ -162,7 +162,7 @@ jobs:
           cache: true
 
       - name: Generate feature localizations
-        working-directory: gpa_feature
+        working-directory: gradus_feature
         run: |
           flutter pub get
           flutter gen-l10n
@@ -170,7 +170,7 @@ jobs:
       # no credential define and no development-access flag: a build that leaves
       # this runner must not be able to open the feature by itself
       - name: Build debug artifact
-        working-directory: gpa_app
+        working-directory: gradus_app
         run: flutter build apk --debug
 
   security:
@@ -209,4 +209,4 @@ jobs:
       - name: Scan committed lockfiles
         run: |
           osv-scanner scan source --lockfile=backend/uv.lock
-          osv-scanner scan source --lockfile=gpa_app/pubspec.lock
+          osv-scanner scan source --lockfile=gradus_app/pubspec.lock

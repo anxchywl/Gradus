@@ -20,7 +20,7 @@ Statistics, Schedule Builder and Degree Audit, a GPA figure with Projected and
 Max possible, and a Sync button reading "Sync your schedule to add registered
 courses".
 
-**This project overlaps it.** Decide deliberately whether `gpa_calc` is a
+**This project overlaps it.** Decide deliberately whether Gradus is a
 replacement for that tab, a component inside it, or a separate thing. Building
 a second GPA calculator beside an existing one is only justified if it does
 something the existing one does not.
@@ -246,7 +246,7 @@ The boundary tests already enforce this, so a Moodle client cannot leak upward.
 
 ## Open
 
-- Is `gpa_calc` replacing the Nuspace Courses tab, embedding in it, or separate?
+- Is Gradus replacing the Nuspace Courses tab, embedding in it, or separate?
 - Are Moodle mobile web services enabled on `moodle.nu.edu.kz`? (Phase 0)
 - What does NU IT policy say about automated access with a student's own
   credentials?

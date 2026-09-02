@@ -1,15 +1,15 @@
 # local development: data services only. the application runs on the host so
 # iteration does not wait on an image build
-name: gpa
+name: gradus
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gpa}
-      POSTGRES_USER: ${POSTGRES_USER:-gpa}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gpa}
+      POSTGRES_DB: ${POSTGRES_DB:-gradus}
+      POSTGRES_USER: ${POSTGRES_USER:-gradus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gradus}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:

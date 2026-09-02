@@ -1,4 +1,4 @@
-# GPA Product
+# Gradus Product
 
 **Partly specified.** A student can organise courses into semesters, grade each
 course from assignments they enter by hand, and see a credit-weighted average,
@@ -63,7 +63,7 @@ it is displayed.
 
 Each of these changes what gets built. None should be guessed.
 
-1. **Which grade scale.** `FourPointScale` in `gpa_feature/lib/src/domain/grade.dart`
+1. **Which grade scale.** `FourPointScale` in `gradus_feature/lib/src/domain/grade.dart`
    is an example so the domain is testable. The real letter-to-points table, and
    whether it varies by faculty or intake year, is an institutional rule. Its
    percentage cutoffs (`GradeScale.bands`) are an example on exactly the same

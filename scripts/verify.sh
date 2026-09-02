@@ -16,16 +16,16 @@ echo "==> backend"
 )
 
 echo "==> localizations"
-(cd gpa_feature && flutter pub get >/dev/null && flutter gen-l10n)
+(cd gradus_feature && flutter pub get >/dev/null && flutter gen-l10n)
 
-for package in app_ui gpa_feature gpa_app; do
+for package in app_ui gradus_feature gradus_app; do
   echo "==> $package"
   (
     cd "$package"
     flutter pub get >/dev/null
     dart format --output=none --set-exit-if-changed lib test
     flutter analyze --no-pub --fatal-infos
-    if [ "$package" = "gpa_feature" ]; then
+    if [ "$package" = "gradus_feature" ]; then
       flutter test --no-pub --coverage --reporter=failures-only
     else
       flutter test --no-pub --reporter=failures-only
@@ -34,6 +34,6 @@ for package in app_ui gpa_feature gpa_app; do
 done
 
 echo "==> coverage"
-./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 85
+./scripts/coverage_floor.sh gradus_feature/coverage/lcov.info 85
 
 echo "==> all checks passed"

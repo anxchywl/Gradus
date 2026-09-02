@@ -17,8 +17,8 @@ COPY backend/app ./app
 COPY backend/alembic.ini ./alembic.ini
 RUN uv sync --frozen --no-dev
 
-RUN addgroup --system gpa && adduser --system --ingroup gpa gpa
-USER gpa
+RUN addgroup --system gradus && adduser --system --ingroup gradus gradus
+USER gradus
 
 EXPOSE 8000
 

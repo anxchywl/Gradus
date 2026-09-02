@@ -1,7 +1,7 @@
 [project]
-name = "gpa-backend"
+name = "gradus-backend"
 version = "0.1.0"
-description = "GPA service"
+description = "Gradus service"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",

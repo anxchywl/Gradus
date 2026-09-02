@@ -1,4 +1,4 @@
-title = "gpa_calc secret scanning"
+title = "gradus secret scanning"
 
 [extend]
 useDefault = true

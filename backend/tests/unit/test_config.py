@@ -10,7 +10,7 @@ from tests.conftest import settings
 def test_environment_defaults_to_production() -> None:
     # an omitted APP_ENV must fail closed, never open a development path
     built = Settings.model_validate(
-        {"DATABASE_URL": "postgresql+asyncpg://gpa:gpa@localhost:5432/gpa"}
+        {"DATABASE_URL": "postgresql+asyncpg://gradus:gradus@localhost:5432/gradus"}
     )
     assert built.environment is AppEnvironment.production
 

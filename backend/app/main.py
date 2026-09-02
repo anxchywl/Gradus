@@ -42,7 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await database.close()
 
     application = FastAPI(
-        title="GPA API",
+        title="Gradus API",
         version="0.1.0",
         docs_url="/documentation" if active_settings.api_docs_enabled else None,
         redoc_url=None,

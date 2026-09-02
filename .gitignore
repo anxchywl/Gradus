@@ -21,11 +21,11 @@ build/
 coverage/
 *.iml
 # generated from the arb files; never committed
-gpa_feature/lib/src/l10n/generated/
+gradus_feature/lib/src/l10n/generated/
 
 # only the application lockfile is committed; libraries resolve through it
 app_ui/pubspec.lock
-gpa_feature/pubspec.lock
+gradus_feature/pubspec.lock
 
 # tooling and os
 .idea/

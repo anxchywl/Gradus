@@ -1,4 +1,4 @@
-# GPA Architecture
+# Gradus Architecture
 
 How this is put together, why, and what the client can and cannot be trusted to
 enforce.
@@ -20,7 +20,7 @@ that changes has exactly one place to change.
 
 ## Why three Flutter packages
 
-The one-way chain `gpa_app -> gpa_feature -> app_ui` is enforced by each
+The one-way chain `gradus_app -> gradus_feature -> app_ui` is enforced by each
 package's pubspec rather than by convention: `app_ui` cannot reach the feature
 because it does not depend on it, and there is no arrangement of imports that
 would let it.
@@ -30,12 +30,12 @@ vendored it as a copy that was meant to stay untouched and it diverged anyway,
 undetected. [PROVENANCE.md](../app_ui/PROVENANCE.md) records the source commit
 and what was removed; a parity test makes any further drift a visible diff.
 
-`gpa_app` is scaffolding. It exists so the feature can be run without a host and
+`gradus_app` is scaffolding. It exists so the feature can be run without a host and
 is not what ships: a release build of it refuses to open.
 
 ## Layers
 
-`gpa_feature/lib/src` and `backend/app` are each split, and a test in
+`gradus_feature/lib/src` and `backend/app` are each split, and a test in
 `test/boundaries` (client) and `tests/boundaries` (backend) fails the build if
 the split is crossed.
 
@@ -46,7 +46,7 @@ the split is crossed.
 | `data/` / `infrastructure/` | Repository implementations, persistence, auth resolvers | - |
 | `presentation/` / `api/` | Screens, widgets, routers, formatting | Reach past their neighbour |
 
-Wiring happens once: `GpaScope` on the client, `create_app` and
+Wiring happens once: `GradusScope` on the client, `create_app` and
 `dependencies.py` on the backend.
 
 ## Mounting inside a host
@@ -54,10 +54,10 @@ Wiring happens once: `GpaScope` on the client, `create_app` and
 The feature is built to be mounted inside the university superapp.
 
 ```dart
-GpaFeature(
-  session: GpaSession(accessToken: token, accountId: id),
+GradusFeature(
+  session: GradusSession(accessToken: token, accountId: id),
   dependencies: createSampleDependencies(),
-  config: const GpaConfig.sample(),
+  config: const GradusConfig.sample(),
 )
 ```
 
@@ -87,11 +87,11 @@ difference is which token it sends; the backend decides what that token means.
 Flutter's own primitives only: `ChangeNotifier`, `AnimatedBuilder`, `setState`.
 No state-management package.
 
-The controller is owned by `GpaFeature`, which creates one per session and
-disposes it when the session changes; `GpaScope` is the `InheritedWidget` that
+The controller is owned by `GradusFeature`, which creates one per session and
+disposes it when the session changes; `GradusScope` is the `InheritedWidget` that
 exposes it, not the thing that builds it. That split matters: a scope that built
 its own controller would hand out a fresh, empty one every time anything above
-the feature rebuilt. `GpaScope` is keyed on the access token, so a new token
+the feature rebuilt. `GradusScope` is keyed on the access token, so a new token
 remounts the subtree and state from one session cannot structurally survive into
 the next.
 
@@ -138,13 +138,13 @@ it.
 ## Layout
 
 One column on a phone, two once the window is wide enough for both to stay
-readable. The breakpoints live in `presentation/gpa_responsive.dart` rather than
+readable. The breakpoints live in `presentation/gradus_responsive.dart` rather than
 in the shared kit, because they are a decision about these screens.
 
-Two widths, not one. `gpaReadingWidth` caps anything that is read as prose or
+Two widths, not one. `gradusReadingWidth` caps anything that is read as prose or
 scanned as a single block - the summary card, the whole course detail - so a
 label and its figure never end up a hand's width apart on a tablet. The course
-grid may grow to `gpaGridWidth`, and the summary is left-aligned inside it so
+grid may grow to `gradusGridWidth`, and the summary is left-aligned inside it so
 both start at the same edge.
 
 Cards are laid out with a `Wrap` rather than a grid: they are different heights,
@@ -251,12 +251,12 @@ repository owner privately. Do not include secrets or real student data.
 
 | Suite | Proves |
 |---|---|
-| `gpa_feature/test/domain` | Credit weighting, pass/fail exclusion, undefined-versus-zero, weighted contributions, unallocated weight, exact weight totals, entity validation |
-| `gpa_feature/test/application` | Add, edit, remove across semesters, courses and assignments; semester selection; rollback on a failed write; discarding a superseded load |
-| `gpa_feature/test/data` | Round trips, corrupt entries, migration from the course-only layout, account separation, no token in a storage key |
-| `gpa_feature/test/presentation` | Screens, forms, empty and error states, semantics labels, column counts and content widths at three viewport sizes |
-| `gpa_feature/test/boundaries` | Layer rules, single wiring point, no literal user-facing text |
-| `gpa_app/test` | The development gate is closed by default and carries no token |
+| `gradus_feature/test/domain` | Credit weighting, pass/fail exclusion, undefined-versus-zero, weighted contributions, unallocated weight, exact weight totals, entity validation |
+| `gradus_feature/test/application` | Add, edit, remove across semesters, courses and assignments; semester selection; rollback on a failed write; discarding a superseded load |
+| `gradus_feature/test/data` | Round trips, corrupt entries, migration from the course-only layout, account separation, no token in a storage key |
+| `gradus_feature/test/presentation` | Screens, forms, empty and error states, semantics labels, column counts and content widths at three viewport sizes |
+| `gradus_feature/test/boundaries` | Layer rules, single wiring point, no literal user-facing text |
+| `gradus_app/test` | The development gate is closed by default and carries no token |
 | `app_ui/test` | The token surface holds no product concept and no second scale; a progress track is visible on the surface it sits on; a menu groups destructive choices last and refuses a disabled one; a destructive label meets AA on the surface it sits on |
 | `backend/tests/unit` | Config guards, resolver behaviour, error envelope, body caps, header validation, role separation |
 | `backend/tests/boundaries` | Layer rules, by parsing imports |

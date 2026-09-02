@@ -1,23 +1,24 @@
-# gpa_calc
+# Gradus
 
 A GPA feature for university students, built to be mounted inside the university
 superapp. The superapp owns identity; this feature never signs anyone in.
 
-**The product is not specified yet.** What exists is the foundation: enforced
-layer boundaries, configuration that refuses to run a development mechanism in
-production, a hardened API spine, and a CI pipeline whose own policies are
-tested. See [docs/PRODUCT.md](./docs/PRODUCT.md) for the open decisions.
+**Partly specified.** A student can organise courses into semesters, grade each
+course from the assignments they enter by hand, and see a credit-weighted
+average, all stored on their own device. Where course data comes from, and
+whether anything is stored server-side, are still open. See
+[docs/PRODUCT.md](./docs/PRODUCT.md) for those decisions.
 
 ## Packages
 
 ```text
 app_ui/       shared presentation kit, forked once from the Student Events project
-gpa_feature/  the embeddable feature: domain, application, data, presentation
-gpa_app/      standalone host for running the feature without the superapp
+gradus_feature/  the embeddable feature: domain, application, data, presentation
+gradus_app/      standalone host for running the feature without the superapp
 backend/      FastAPI service: config guards, error envelope, health, auth seam
 ```
 
-Dependencies point one way: `gpa_app -> gpa_feature -> app_ui`.
+Dependencies point one way: `gradus_app -> gradus_feature -> app_ui`.
 
 ## Setup
 

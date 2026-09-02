@@ -52,6 +52,7 @@ void main() {
       'reward',
       'level_ring',
       'gpa',
+      'gradus',
       'course',
       'grade',
       'transcript',

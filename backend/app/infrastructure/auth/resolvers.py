@@ -37,7 +37,7 @@ class DevelopmentPrincipalResolver:
                 "The development authentication token is invalid.",
             )
         return ExternalIdentity(
-            external_issuer="gpa-development",
+            external_issuer="gradus-development",
             external_subject=(
                 self._operator_subject if is_operator else self._student_subject
             ),

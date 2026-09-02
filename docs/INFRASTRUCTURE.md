@@ -1,4 +1,4 @@
-# GPA Infrastructure
+# Gradus Infrastructure
 
 Toolchain, running, checks, builds and environments. Architecture rationale is in
 [ARCHITECTURE.md](./ARCHITECTURE.md); product rules in [PRODUCT.md](./PRODUCT.md).
@@ -7,15 +7,15 @@ Toolchain, running, checks, builds and environments. Architecture rationale is i
 
 Python 3.12 with `uv`, Flutter 3.38.5, Docker with Compose. Dependencies are
 locked and committed; CI installs with `--frozen`. Only the application lockfile
-(`gpa_app/pubspec.lock`) is committed on the Flutter side; the library packages
+(`gradus_app/pubspec.lock`) is committed on the Flutter side; the library packages
 resolve through it.
 
 ## Repository layout
 
 ```text
 app_ui/       shared presentation kit, forked once
-gpa_feature/  the embeddable feature
-gpa_app/      standalone host
+gradus_feature/  the embeddable feature
+gradus_app/      standalone host
 backend/      FastAPI service
 docker/       local and production Compose definitions
 scripts/      verify.sh and the coverage floor
@@ -40,11 +40,11 @@ arguments, not runtime variables, and never belong to a build that leaves this
 machine:
 
 ```bash
-cd gpa_app
+cd gradus_app
 flutter run \
   --dart-define=ENABLE_DEV_ACCESS=true \
-  --dart-define=GPA_ACCESS_TOKEN="$DEVELOPMENT_AUTH_TOKEN" \
-  --dart-define=GPA_OPERATOR_ACCESS_TOKEN="$DEVELOPMENT_OPERATOR_AUTH_TOKEN"
+  --dart-define=GRADUS_ACCESS_TOKEN="$DEVELOPMENT_AUTH_TOKEN" \
+  --dart-define=GRADUS_OPERATOR_ACCESS_TOKEN="$DEVELOPMENT_OPERATOR_AUTH_TOKEN"
 ```
 
 Long-press anywhere to switch between the student and operator development
@@ -67,11 +67,11 @@ One command runs everything CI runs:
 | Backend types | `uv run --frozen mypy app` |
 | Backend scan | `uv run --frozen bandit -q -r app` |
 | Backend tests | `uv run --frozen pytest --cov=app --cov-fail-under=90 -q` |
-| Localizations | `cd gpa_feature && flutter gen-l10n` |
+| Localizations | `cd gradus_feature && flutter gen-l10n` |
 | Client format | `dart format --output=none --set-exit-if-changed lib test` |
 | Client analyze | `flutter analyze --no-pub --fatal-infos` |
 | Client tests | `flutter test --no-pub --coverage` |
-| Client coverage | `./scripts/coverage_floor.sh gpa_feature/coverage/lcov.info 85` |
+| Client coverage | `./scripts/coverage_floor.sh gradus_feature/coverage/lcov.info 85` |
 
 CI additionally runs gitleaks over the full history, osv-scanner on both
 lockfiles, and a debug Android build. Both scanner binaries are checksum-verified
@@ -85,11 +85,11 @@ environment.
 
 ## Adding user-facing text
 
-Add the key to all three ARB files under `gpa_feature/lib/src/l10n/arb/`,
+Add the key to all three ARB files under `gradus_feature/lib/src/l10n/arb/`,
 English first, then:
 
 ```bash
-cd gpa_feature && flutter gen-l10n
+cd gradus_feature && flutter gen-l10n
 ```
 
 Generated output is not committed. A string that exists in only one language is
@@ -98,14 +98,14 @@ outside the ARB files - a boundary test enforces that.
 
 ## Adding a repository
 
-Define the interface in `gpa_feature/lib/src/domain/repositories.dart`, implement
-it under `data/`, and wire it in `GpaScope`. Nothing above `data/` may name an
+Define the interface in `gradus_feature/lib/src/domain/repositories.dart`, implement
+it under `data/`, and wire it in `GradusScope`. Nothing above `data/` may name an
 implementation, and a boundary test fails the build if it does.
 
 ## Builds
 
 ```bash
-cd gpa_app
+cd gradus_app
 flutter build apk --debug
 flutter build apk --release
 ```

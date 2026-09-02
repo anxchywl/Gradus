@@ -16,12 +16,12 @@ suggestions: a change that breaks one is wrong even if it works.
 
 ```text
 app_ui/       shared presentation kit, forked once; see app_ui/PROVENANCE.md
-gpa_feature/  the embeddable feature: domain, application, data, presentation
-gpa_app/      standalone host: MaterialApp, theme, locale, lifecycle
+gradus_feature/  the embeddable feature: domain, application, data, presentation
+gradus_app/      standalone host: MaterialApp, theme, locale, lifecycle
 backend/      FastAPI service
 ```
 
-Dependencies point one way: `gpa_app -> gpa_feature -> app_ui`. Never the other,
+Dependencies point one way: `gradus_app -> gradus_feature -> app_ui`. Never the other,
 and never a non-presentational dependency in `app_ui`.
 
 Nothing GPA-specific goes into `app_ui`. Change it only when the fix belongs
@@ -29,12 +29,12 @@ there rather than here - an accessibility gap, a bug affecting every consumer -
 and keep it generic. `app_ui/test/token_parity_test.dart` fails if a product
 concept or a second token scale appears.
 
-There is no separate `gpa_ui` package. If product widgets outgrow
-`gpa_feature/lib/src/presentation`, extract one then, not before.
+There is no separate `gradus_ui` package. If product widgets outgrow
+`gradus_feature/lib/src/presentation`, extract one then, not before.
 
 ## Layers
 
-`gpa_feature/lib/src` and `backend/app` are each split, and a test enforces the
+`gradus_feature/lib/src` and `backend/app` are each split, and a test enforces the
 split:
 
 - `domain/` - pure. No Flutter, no framework, no ORM, no networking, no storage.
@@ -44,7 +44,7 @@ split:
 - `presentation/` (client) and `api/` (backend) - screens and routers. Never
   reach past their neighbour.
 
-Wiring happens once: `GpaScope` on the client, `create_app` and `dependencies.py`
+Wiring happens once: `GradusScope` on the client, `create_app` and `dependencies.py`
 on the backend. Business logic does not live in a widget or a router. A widget
 that decides what something means is a controller in the wrong place.
 
@@ -87,7 +87,7 @@ recoverable from it; it is not a secret once shipped.
 - No literal user-facing text. Every string comes from the ARB files, in all
   three languages.
 - `lower_snake_case.dart` files, `UpperCamelCase` types, `snake_case` Python.
-  Short but descriptive: `GpaController`, not `Mgr` or `GpaDataHandler`.
+  Short but descriptive: `GradusController`, not `Mgr` or `GradusDataHandler`.
 - Nothing hardcoded that belongs in `backend/app/config.py`, CORS origins
   included.
 

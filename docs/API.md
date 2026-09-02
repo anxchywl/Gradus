@@ -1,4 +1,4 @@
-# GPA API Contract
+# Gradus API Contract
 
 The boundary between the Flutter repository interfaces and the backend service.
 Product meaning stays in [PRODUCT.md](./PRODUCT.md); this document owns endpoint
@@ -49,7 +49,7 @@ accident.
 ## Repository mapping
 
 Filled in as endpoints are written: each Flutter repository interface in
-`gpa_feature/lib/src/domain/repositories.dart` maps to one endpoint here, with
+`gradus_feature/lib/src/domain/repositories.dart` maps to one endpoint here, with
 its request, response and error codes.
 
 | Flutter interface | Endpoint | Request | Response | Errors |

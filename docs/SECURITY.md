@@ -1,4 +1,4 @@
-# GPA Security
+# Gradus Security
 
 Controls, where they live, and how each is verified. Boundaries and the threat
 model are in [ARCHITECTURE.md](./ARCHITECTURE.md) and are not repeated here.
@@ -28,9 +28,9 @@ model are in [ARCHITECTURE.md](./ARCHITECTURE.md) and are not repeated here.
 | 11 | Body cap enforced by counting bytes, not the declared length | `app/main.py` | `test_app.py::test_an_understated_content_length_does_not_bypass_the_cap` | Implemented |
 | 12 | Security headers; HSTS only in production | `app/main.py` | `test_app.py::test_security_headers_are_present`, `::test_hsts_only_in_production` | Implemented |
 | 13 | Idempotency and expected-version header validation | `app/api/headers.py` | `test_headers.py` | Parsing only; storage not built |
-| 14 | Layer boundaries enforced by import scanning | `tests/boundaries/`, `gpa_feature/test/boundaries/` | those suites | Implemented |
-| 15 | No literal user-facing text outside the ARB files | `gpa_feature` | `layer_boundaries_test.dart` | Implemented |
-| 16 | Development access closed by default in every build | `gpa_app/lib/dev/dev_gate.dart` | `dev_gate_test.dart` | Implemented |
+| 14 | Layer boundaries enforced by import scanning | `tests/boundaries/`, `gradus_feature/test/boundaries/` | those suites | Implemented |
+| 15 | No literal user-facing text outside the ARB files | `gradus_feature` | `layer_boundaries_test.dart` | Implemented |
+| 16 | Development access closed by default in every build | `gradus_app/lib/dev/dev_gate.dart` | `dev_gate_test.dart` | Implemented |
 | 17 | No credential compiled into any artifact | `dev_gate.dart`, workflows | `dev_gate_test.dart::no development token is compiled in by default`, `test_ci_policy.py::test_no_workflow_bakes_a_credential_into_a_build` | Implemented |
 | 18 | Actions pinned to commit SHAs; scanners checksum-verified | `.github/workflows/ci.yml` | `test_ci_policy.py` | Implemented |
 | 19 | Secret scanning over full history; dependency advisory scanning | `.github/workflows/ci.yml` | `test_ci_policy.py::test_secret_and_dependency_scanning_run` | Implemented |
@@ -55,7 +55,7 @@ known value.
 |---|---|---|
 | Development auth adapter | Refused when `APP_ENV=production` | Never |
 | Standalone host access | Two defines, both default false | Never; enforced by `test_ci_policy.py` |
-| In-memory repository | Selected by the caller of `GpaFeature` | Never the default in a remote build |
+| In-memory repository | Selected by the caller of `GradusFeature` | Never the default in a remote build |
 | API documentation | Refused when `APP_ENV=production` | Never |
 
 ## Known gaps
