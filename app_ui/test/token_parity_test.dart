@@ -1,10 +1,10 @@
 import 'dart:io';
 
+import 'package:app_ui/app_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The token surface is a contract shared with the other two projects that use
-/// this kit. Drift is what made the previous copy diverge unnoticed, so a
-/// change here has to be a visible diff in this file rather than a silent one.
+// drift in the token surface is what made the previous copy diverge unnoticed
 List<String> _publicMembersOf(String path) {
   final declaration = RegExp(
     r'static\s+(?:const\s+|final\s+)?[\w<>, ?]+\s+(?:get\s+)?(\w+)',
@@ -16,6 +16,14 @@ List<String> _publicMembersOf(String path) {
       .where((name) => !name.startsWith('_'))
       .toList()
     ..sort();
+}
+
+double _contrast(Color foreground, Color background) {
+  final one = foreground.computeLuminance();
+  final other = background.computeLuminance();
+  final lighter = one > other ? one : other;
+  final darker = one > other ? other : one;
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 void main() {
@@ -62,5 +70,27 @@ void main() {
         );
       }
     }
+  });
+
+  test('a destructive label is readable on the surface it sits on', () {
+    // contrast AA for a 14pt label, which is what a destructive menu item is
+    expect(_contrast(AppColors.errorText, AppColors.white), greaterThan(4.5));
+    expect(
+      _contrast(AppColors.errorTextDark, AppColors.surfaceDark),
+      greaterThan(4.5),
+    );
+  });
+
+  test('a progress track is visible on the surface it sits on', () {
+    final source = File(
+      'lib/indicators/app_progress_bar.dart',
+    ).readAsStringSync();
+    expect(
+      source,
+      isNot(contains('AppColors.surfaceDark')),
+      reason:
+          'a dark card is painted with surfaceDark, so a track of the same '
+          'colour is an invisible control on every consumer',
+    );
   });
 }

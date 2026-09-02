@@ -7,9 +7,7 @@ import 'dev/dev_gate.dart';
 
 void main() => runApp(const GpaHostApp());
 
-/// The host owns MaterialApp, theme, locale, lifecycle and top-level
-/// navigation. In production that host is the superapp; this one exists so the
-/// feature can be run on its own.
+// the production host is the superapp, this one runs the feature on its own
 class GpaHostApp extends StatefulWidget {
   const GpaHostApp({super.key});
 

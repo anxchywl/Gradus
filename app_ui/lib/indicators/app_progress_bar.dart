@@ -3,16 +3,6 @@ import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_text_styles.dart';
 
-/// Linear progress bar with consistent styling.
-///
-/// Example:
-/// ```dart
-/// AppProgressBar(
-///   progress: 0.75,
-///   label: 'Profile Completion',
-///   showPercentage: true,
-/// )
-/// ```
 class AppProgressBar extends StatelessWidget {
   const AppProgressBar({
     super.key,
@@ -26,28 +16,20 @@ class AppProgressBar extends StatelessWidget {
     this.animate = true,
   });
 
-  /// Progress value between 0.0 and 1.0.
   final double progress;
 
-  /// Optional label above the bar.
   final String? label;
 
-  /// Whether to show percentage text.
   final bool showPercentage;
 
-  /// Height of the progress bar.
   final double height;
 
-  /// Background color of the bar.
   final Color? backgroundColor;
 
-  /// Color of the progress indicator.
   final Color? progressColor;
 
-  /// Border radius.
   final BorderRadius? borderRadius;
 
-  /// Whether to animate progress changes.
   final bool animate;
 
   @override
@@ -55,9 +37,12 @@ class AppProgressBar extends StatelessWidget {
     final theme = Theme.of(context);
     final isLight = theme.brightness == Brightness.light;
 
+    // a dark card is already surfaceDark, so the track needs a white wash
     final effectiveBackgroundColor =
         backgroundColor ??
-        (isLight ? AppColors.fieldBackground : AppColors.surfaceDark);
+        (isLight
+            ? AppColors.fieldBackground
+            : AppColors.white.withValues(alpha: 0.12));
     final effectiveProgressColor = progressColor ?? AppColors.primary;
     final effectiveBorderRadius = borderRadius ?? AppSpacing.borderRadiusRound;
     final clampedProgress = progress.clamp(0.0, 1.0);
@@ -136,7 +121,6 @@ class AppProgressBar extends StatelessWidget {
   }
 }
 
-/// Step progress indicator.
 class AppStepProgress extends StatelessWidget {
   const AppStepProgress({
     super.key,
@@ -149,25 +133,18 @@ class AppStepProgress extends StatelessWidget {
     this.spacing = 4,
   });
 
-  /// Total number of steps.
   final int totalSteps;
 
-  /// Current step (1-indexed).
   final int currentStep;
 
-  /// Color for active step.
   final Color? activeColor;
 
-  /// Color for inactive steps.
   final Color? inactiveColor;
 
-  /// Color for completed steps.
   final Color? completedColor;
 
-  /// Height of each step indicator.
   final double height;
 
-  /// Spacing between steps.
   final double spacing;
 
   @override
@@ -176,9 +153,12 @@ class AppStepProgress extends StatelessWidget {
     final isLight = theme.brightness == Brightness.light;
 
     final effectiveActiveColor = activeColor ?? AppColors.primary;
+    // white wash for the same reason as AppProgressBar
     final effectiveInactiveColor =
         inactiveColor ??
-        (isLight ? AppColors.fieldBackground : AppColors.surfaceDark);
+        (isLight
+            ? AppColors.fieldBackground
+            : AppColors.white.withValues(alpha: 0.12));
     final effectiveCompletedColor = completedColor ?? AppColors.primary;
 
     return Row(

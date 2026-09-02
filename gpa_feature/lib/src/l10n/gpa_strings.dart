@@ -3,13 +3,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'generated/gpa_localizations.dart';
 
-/// The locales this feature ships. Anything outside them falls back to English.
 const List<Locale> supportedGpaLocales = GpaLocalizations.supportedLocales;
 
 typedef GpaStrings = GpaLocalizations;
 
-/// Installs the feature's own delegates over whatever the host provides, so the
-/// feature works inside a host that has never heard of it.
 class GpaStringsScope extends StatelessWidget {
   const GpaStringsScope({super.key, required this.child});
 

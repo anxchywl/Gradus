@@ -49,9 +49,7 @@ def test_secret_and_dependency_scanning_run() -> None:
 
 
 def test_no_workflow_bakes_a_credential_into_a_build() -> None:
-    # a --dart-define is compiled into the binary and is recoverable from it.
-    # a predecessor project shipped an operator token in a public release APK;
-    # this test is why that cannot happen here
+    # a --dart-define is recoverable from the binary, a predecessor shipped a token
     for workflow in _workflows():
         found = CREDENTIAL_DEFINE.findall(workflow.read_text())
         assert not found, (

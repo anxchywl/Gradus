@@ -4,17 +4,6 @@ import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_text_styles.dart';
 
-/// Standard text input field with consistent styling.
-///
-/// Example:
-/// ```dart
-/// AppTextField(
-///   controller: _controller,
-///   label: 'Email',
-///   hint: 'Enter your email',
-///   keyboardType: TextInputType.emailAddress,
-/// )
-/// ```
 class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
@@ -48,88 +37,60 @@ class AppTextField extends StatefulWidget {
     this.contentPadding,
   });
 
-  /// Controller for the text field.
   final TextEditingController? controller;
 
-  /// Label text displayed above the field.
   final String? label;
 
-  /// Hint text displayed when field is empty.
   final String? hint;
 
-  /// Error text displayed below the field.
   final String? errorText;
 
-  /// Helper text displayed below the field.
   final String? helperText;
 
-  /// Prefix icon widget.
   final Widget? prefixIcon;
 
-  /// Suffix icon widget.
   final Widget? suffixIcon;
 
-  /// Keyboard type for the field.
   final TextInputType? keyboardType;
 
-  /// Text input action for the keyboard.
   final TextInputAction? textInputAction;
 
-  /// Callback when text changes.
   final ValueChanged<String>? onChanged;
 
-  /// Callback when field is submitted.
   final ValueChanged<String>? onSubmitted;
 
-  /// Callback when field is tapped.
   final VoidCallback? onTap;
 
-  /// Validator function for form validation.
   final FormFieldValidator<String>? validator;
 
-  /// Whether the field is enabled.
   final bool enabled;
 
-  /// Whether the field is read-only.
   final bool readOnly;
 
-  /// Whether to autofocus the field.
   final bool autofocus;
 
-  /// Whether to obscure text (for passwords).
   final bool obscureText;
 
-  /// Maximum number of lines.
   final int? maxLines;
 
-  /// Minimum number of lines.
   final int? minLines;
 
-  /// Maximum character length.
   final int? maxLength;
 
-  /// Focus node for the field.
   final FocusNode? focusNode;
 
-  /// Input formatters for text manipulation.
   final List<TextInputFormatter>? inputFormatters;
 
-  /// Whether to trim leading spaces and multiple consecutive spaces.
   final bool trimSpaces;
 
-  /// Text capitalization behavior.
   final TextCapitalization textCapitalization;
 
-  /// Whether to fill the background.
   final bool filled;
 
-  /// Custom fill color.
   final Color? fillColor;
 
-  /// Custom border radius.
   final BorderRadius? borderRadius;
 
-  /// Custom content padding.
   final EdgeInsets? contentPadding;
 
   @override
@@ -277,12 +238,10 @@ class _SingleSpaceFormatter extends TextInputFormatter {
   ) {
     String newText = newValue.text;
 
-    // Remove leading space
     if (newText.startsWith(' ')) {
       newText = newText.trimLeft();
     }
 
-    // Replace multiple spaces with a single space
     newText = newText.replaceAll(RegExp(r' {2,}'), ' ');
 
     if (newText == newValue.text) {

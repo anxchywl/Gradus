@@ -1,11 +1,8 @@
 import 'course.dart';
+import 'course_grade.dart';
+import 'grade.dart';
 
-/// The result of averaging a set of courses.
-///
-/// [attemptedCredits] counts everything with a grade; [qualityCredits] counts
-/// only what the average is actually computed over. They differ whenever a
-/// pass/fail course is present, and showing both is what stops a student
-/// thinking the calculator lost their credits.
+// attempted counts every result, quality only what the average uses
 class GpaResult {
   const GpaResult({
     required this.value,
@@ -19,7 +16,7 @@ class GpaResult {
     attemptedCredits: 0,
   );
 
-  /// Null when nothing counts yet. Zero is a real GPA; absence is not.
+  // zero is a real gpa, absence is not
   final double? value;
   final double qualityCredits;
   final double attemptedCredits;
@@ -27,17 +24,18 @@ class GpaResult {
   bool get isDefined => value != null;
 }
 
-/// Credit-weighted average over the courses that count.
-GpaResult calculateGpa(Iterable<Course> courses) {
+// a course may reach its letter through assignments, hence the scale
+GpaResult calculateGpa(Iterable<Course> courses, GradeScale scale) {
   var weightedPoints = 0.0;
   var qualityCredits = 0.0;
   var attemptedCredits = 0.0;
 
   for (final course in courses) {
-    if (!course.isGraded) continue;
+    final resolved = calculateCourseGrade(course, scale);
+    if (!resolved.isAttempted) continue;
     attemptedCredits += course.credits;
-    if (!course.weighsOnGpa) continue;
-    weightedPoints += course.credits * course.grade!.qualityPoints;
+    if (!resolved.weighsOnGpa) continue;
+    weightedPoints += course.credits * resolved.grade!.qualityPoints;
     qualityCredits += course.credits;
   }
 

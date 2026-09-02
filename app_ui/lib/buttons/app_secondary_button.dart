@@ -4,16 +4,6 @@ import '../tokens/app_spacing.dart';
 import '../tokens/app_text_styles.dart';
 import 'app_primary_button.dart';
 
-/// Secondary button with outlined border.
-/// Use for secondary actions or cancel buttons.
-///
-/// Example:
-/// ```dart
-/// AppSecondaryButton(
-///   text: 'Cancel',
-///   onPressed: () => Navigator.pop(context),
-/// )
-/// ```
 class AppSecondaryButton extends StatefulWidget {
   const AppSecondaryButton({
     super.key,
@@ -29,34 +19,24 @@ class AppSecondaryButton extends StatefulWidget {
     this.textColor,
   });
 
-  /// Button label text.
   final String text;
 
-  /// Callback when button is pressed.
   final VoidCallback? onPressed;
 
-  /// Whether to show loading indicator.
   final bool isLoading;
 
-  /// Whether the button is enabled.
   final bool isEnabled;
 
-  /// Optional leading icon widget.
   final Widget? icon;
 
-  /// Custom width (defaults to full width).
   final double? width;
 
-  /// Custom height (overrides size).
   final double? height;
 
-  /// Button size variant.
   final AppButtonSize size;
 
-  /// Custom border color.
   final Color? borderColor;
 
-  /// Custom text color.
   final Color? textColor;
 
   double get _height => height ?? size.height;

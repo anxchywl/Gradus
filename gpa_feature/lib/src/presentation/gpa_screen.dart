@@ -1,13 +1,24 @@
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../application/gpa_controller.dart';
 import '../config/gpa_scope.dart';
 import '../domain/course.dart';
+import '../domain/course_grade.dart';
+import '../domain/semester.dart';
 import '../l10n/gpa_strings.dart';
+import 'confirm_dialog.dart';
+import 'course_detail_screen.dart';
 import 'course_form.dart';
+import 'gpa_formatting.dart';
+import 'gpa_responsive.dart';
+import 'gpa_widgets.dart';
+import 'semester_form.dart';
 
-/// Entry screen. Renders text that is already translated and already formatted;
-/// deciding what a number means belongs to the controller, not here.
+enum _SemesterAction { add, rename, delete }
+
+enum _CourseAction { edit, delete }
+
 class GpaScreen extends StatefulWidget {
   const GpaScreen({super.key});
 
@@ -24,25 +35,98 @@ class _GpaScreenState extends State<GpaScreen> {
     });
   }
 
-  Future<void> _openForm({Course? existing}) async {
+  Future<void> _openSemesterForm({Semester? existing}) async {
+    final controller = GpaScope.of(context).gpa;
+    final highest = controller.semesters.isEmpty
+        ? 0
+        : controller.semesters.first.position;
+
+    final semester = await showModalBottomSheet<Semester>(
+      context: context,
+      isScrollControlled: true,
+      // mounted on the host overlay, so the delegate is installed again
+      builder: (_) => GpaStringsScope(
+        child: SemesterForm(nextPosition: highest + 1, existing: existing),
+      ),
+    );
+    if (semester == null) return;
+    await (existing == null
+        ? controller.addSemester(semester)
+        : controller.updateSemester(semester));
+  }
+
+  Future<void> _deleteSemester(Semester semester) async {
+    final controller = GpaScope.of(context).gpa;
+    final strings = GpaStrings.of(context);
+    final confirmed = await confirmDestructiveAction(
+      context,
+      message: strings.deleteSemesterConfirm(formatSemester(strings, semester)),
+    );
+    if (!confirmed) return;
+    await controller.removeSemester(semester.id);
+  }
+
+  Future<void> _openCourseForm({Course? existing}) async {
     final controller = GpaScope.of(context).gpa;
     final scale = controller.scale;
-    if (scale == null) return;
+    final semesters = controller.semesters;
+    if (scale == null || semesters.isEmpty) return;
 
     final course = await showModalBottomSheet<Course>(
       context: context,
       isScrollControlled: true,
-      // the sheet mounts on the host's overlay, outside our subtree, so the
-      // feature's delegate has to be installed again or its strings resolve
-      // to nothing
       builder: (_) => GpaStringsScope(
-        child: CourseForm(scale: scale, existing: existing),
+        child: CourseForm(
+          scale: scale,
+          semesters: semesters,
+          initialSemesterId:
+              controller.selectedSemesterId ?? semesters.first.id,
+          existing: existing,
+        ),
       ),
     );
     if (course == null) return;
     await (existing == null
-        ? controller.add(course)
-        : controller.update(course));
+        ? controller.addCourse(course)
+        : controller.updateCourse(course));
+  }
+
+  Future<void> _deleteCourse(Course course) async {
+    final controller = GpaScope.of(context).gpa;
+    final strings = GpaStrings.of(context);
+    final confirmed = await confirmDestructiveAction(
+      context,
+      message: strings.deleteCourseConfirm(course.title),
+    );
+    if (!confirmed) return;
+    await controller.removeCourse(course.id);
+  }
+
+  void _openCourse(Course course) {
+    final scope = GpaScope.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        // a pushed route builds outside this subtree, so both are re-exposed
+        builder: (_) => GpaStringsScope(
+          child: GpaScope(
+            session: scope.session,
+            gpa: scope.gpa,
+            child: CourseDetailScreen(courseId: course.id),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onSemesterAction(_SemesterAction action, Semester? selected) {
+    switch (action) {
+      case _SemesterAction.add:
+        _openSemesterForm();
+      case _SemesterAction.rename:
+        if (selected != null) _openSemesterForm(existing: selected);
+      case _SemesterAction.delete:
+        if (selected != null) _deleteSemester(selected);
+    }
   }
 
   @override
@@ -51,11 +135,18 @@ class _GpaScreenState extends State<GpaScreen> {
     final controller = GpaScope.of(context).gpa;
 
     return Scaffold(
-      appBar: AppAppBar(title: strings.featureTitle),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openForm,
-        tooltip: strings.addCourse,
-        child: const Icon(Icons.add),
+      appBar: AppAppBar(
+        title: strings.featureTitle,
+        centerTitle: false,
+        actions: [
+          AnimatedBuilder(
+            animation: controller,
+            builder: (context, _) => _SemesterMenu(
+              controller: controller,
+              onSelected: _onSemesterAction,
+            ),
+          ),
+        ],
       ),
       body: AnimatedBuilder(
         animation: controller,
@@ -63,61 +154,267 @@ class _GpaScreenState extends State<GpaScreen> {
           if (controller.isLoading) {
             return const Center(child: AppLoader());
           }
-          if (controller.failure != null && controller.entries.isEmpty) {
-            return _Message(text: strings.loadFailed);
+          if (controller.failure != null && controller.allCourses.isEmpty) {
+            return GpaEmptyState(
+              icon: AppIcons.warning,
+              tone: GpaTone.warning,
+              title: strings.loadFailed,
+              message: strings.loadFailedBody,
+              actionLabel: strings.retry,
+              onAction: controller.load,
+            );
           }
+          if (controller.semesters.isEmpty) {
+            return GpaEmptyState(
+              icon: AppIcons.calendar,
+              title: strings.noSemesters,
+              message: strings.noSemestersBody,
+              actionLabel: strings.addSemester,
+              onAction: _openSemesterForm,
+            );
+          }
+
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Summary(),
+              _SemesterBar(controller: controller),
               Expanded(
                 child: controller.entries.isEmpty
-                    ? _Message(text: strings.noCourses)
-                    : ListView.builder(
-                        padding: AppSpacing.screenHorizontal,
-                        itemCount: controller.entries.length,
-                        itemBuilder: (context, index) {
-                          final course = controller.entries[index];
-                          return _CourseRow(
-                            course: course,
-                            onEdit: () => _openForm(existing: course),
-                            onDelete: () => controller.remove(course.id),
-                          );
-                        },
+                    ? _EmptySemester(
+                        controller: controller,
+                        onAddCourse: _openCourseForm,
+                      )
+                    : _Body(
+                        controller: controller,
+                        onOpen: _openCourse,
+                        onEdit: (course) => _openCourseForm(existing: course),
+                        onDelete: _deleteCourse,
                       ),
               ),
             ],
           );
         },
       ),
+      floatingActionButton: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) =>
+            controller.semesters.isEmpty || controller.entries.isEmpty
+            ? const SizedBox.shrink()
+            : FloatingActionButton.extended(
+                onPressed: _openCourseForm,
+                // the brand colour reads in both themes
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                icon: const AppIcon(AppIcons.add, color: AppColors.white),
+                label: Text(strings.addCourse),
+              ),
+      ),
     );
   }
 }
 
-class _Summary extends StatelessWidget {
+// a reason a control is unavailable belongs beside it, not always on screen
+class _SemesterMenu extends StatelessWidget {
+  const _SemesterMenu({required this.controller, required this.onSelected});
+
+  final GpaController controller;
+  final void Function(_SemesterAction, Semester?) onSelected;
+
   @override
   Widget build(BuildContext context) {
     final strings = GpaStrings.of(context);
-    final result = GpaScope.of(context).gpa.result;
+    final selected = controller.selectedSemester;
+    final canDelete =
+        selected != null && controller.canRemoveSemester(selected.id);
 
-    return Padding(
-      padding: AppSpacing.screenPadding,
+    return Semantics(
+      container: true,
+      button: true,
+      label: strings.semesterActions,
+      child: AppMenu<_SemesterAction>(
+        tooltip: strings.semesterActions,
+        iconColor: gpaPrimaryText(context),
+        onSelected: (action) => onSelected(action, selected),
+        items: [
+          AppMenuItem(
+            value: _SemesterAction.add,
+            label: strings.addSemester,
+            icon: AppIcons.add,
+          ),
+          if (selected != null) ...[
+            AppMenuItem(
+              value: _SemesterAction.rename,
+              label: strings.editSemester,
+              icon: AppIcons.edit,
+            ),
+            AppMenuItem(
+              value: _SemesterAction.delete,
+              label: strings.deleteSemester(formatSemester(strings, selected)),
+              icon: AppIcons.delete,
+              enabled: canDelete,
+              isDestructive: true,
+              description: canDelete ? null : strings.deleteSemesterBlocked,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SemesterBar extends StatelessWidget {
+  const _SemesterBar({required this.controller});
+
+  final GpaController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = GpaStrings.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: AppSpacing.screenHorizontal,
+          child: Row(
+            children: [
+              _SemesterChip(
+                label: strings.allSemesters,
+                isSelected: controller.isAllSemestersSelected,
+                onTap: () => controller.selectSemester(null),
+              ),
+              for (final semester in controller.semesters)
+                _SemesterChip(
+                  label: formatSemester(strings, semester),
+                  isSelected: semester.id == controller.selectedSemesterId,
+                  onTap: () => controller.selectSemester(semester.id),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: AppSpacing.screenPadding,
+          child: CenteredContent(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                // full width would put the label and the figure far apart
+                constraints: const BoxConstraints(maxWidth: gpaReadingWidth),
+                child: _SummaryCard(controller: controller),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SemesterChip extends StatelessWidget {
+  const _SemesterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(right: AppSpacing.sm),
+    child: Semantics(
+      selected: isSelected,
+      button: true,
+      child: AppCard(
+        onTap: onTap,
+        // the kit's own small-control height, so the target is reachable
+        height: AppSpacing.buttonHeightSm,
+        padding: AppSpacing.buttonPaddingCompact,
+        borderRadius: AppSpacing.borderRadiusRound,
+        backgroundColor: isSelected ? AppColors.primary : null,
+        child: Center(
+          child: Text(
+            label,
+            style: AppTextStyles.chip.copyWith(
+              color: isSelected ? AppColors.white : gpaPrimaryText(context),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.controller});
+
+  final GpaController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = GpaStrings.of(context);
+    final result = controller.result;
+    final showSemester = !controller.isAllSemestersSelected;
+
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            result.isDefined
-                ? strings.gpaValue(result.value!)
-                : strings.gpaUndefined,
-            style: AppTextStyles.displaySmall,
+            showSemester ? strings.semesterGpa : strings.cumulativeGpa,
+            style: AppTextStyles.labelMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           AppSpacing.verticalXs,
-          // both figures, so a pass/fail course does not look like lost credit
-          Text(
-            strings.creditsSummary(
-              result.qualityCredits,
-              result.attemptedCredits,
+          // an em dash at display size reads as a stray rule
+          if (result.isDefined)
+            Text(
+              formatGpa(strings, result.value),
+              style: AppTextStyles.displaySmall.copyWith(
+                color: gpaPrimaryText(context),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Text(
+                strings.gpaUndefined,
+                style: AppTextStyles.titleMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
-            style: AppTextStyles.bodySmall,
+          AppSpacing.verticalDf,
+          const Divider(height: AppSpacing.dividerDf, color: AppColors.divider),
+          AppSpacing.verticalDf,
+          Row(
+            children: [
+              if (showSemester)
+                Expanded(
+                  child: GpaStatTile(
+                    label: strings.cumulativeGpa,
+                    value: formatGpa(
+                      strings,
+                      controller.cumulativeResult.value,
+                    ),
+                  ),
+                ),
+              Expanded(
+                flex: showSemester ? 1 : 2,
+                child: GpaStatTile(
+                  // a label and a figure, not a sentence dressed as a figure
+                  label: strings.creditsCountedLabel,
+                  value: strings.creditsRatio(
+                    result.qualityCredits,
+                    result.attemptedCredits,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -125,8 +422,216 @@ class _Summary extends StatelessWidget {
   }
 }
 
-class _CourseRow extends StatelessWidget {
-  const _CourseRow({
+class _EmptySemester extends StatelessWidget {
+  const _EmptySemester({required this.controller, required this.onAddCourse});
+
+  final GpaController controller;
+  final VoidCallback onAddCourse;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = GpaStrings.of(context);
+    return GpaEmptyState(
+      icon: AppIcons.book,
+      title: strings.noCourses,
+      message: strings.noCoursesBody,
+      actionLabel: strings.addCourse,
+      onAction: onAddCourse,
+    );
+  }
+}
+
+class _Body extends StatelessWidget {
+  const _Body({
+    required this.controller,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final GpaController controller;
+  final void Function(Course) onOpen;
+  final void Function(Course) onEdit;
+  final void Function(Course) onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = GpaStrings.of(context);
+    final scale = controller.scale!;
+
+    Widget card(Course course) => _CourseCard(
+      course: course,
+      resolved: calculateCourseGrade(course, scale),
+      onOpen: () => onOpen(course),
+      onEdit: () => onEdit(course),
+      onDelete: () => onDelete(course),
+    );
+
+    final children = <Widget>[];
+    if (controller.isAllSemestersSelected) {
+      for (final semester in controller.semesters) {
+        final courses = controller.coursesIn(semester.id);
+        if (courses.isEmpty) continue;
+        children
+          ..add(
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.sm,
+                bottom: AppSpacing.md,
+              ),
+              child: GpaSectionHeader(title: formatSemester(strings, semester)),
+            ),
+          )
+          ..add(
+            CardGrid(
+              spacing: AppSpacing.md,
+              children: [for (final course in courses) card(course)],
+            ),
+          );
+      }
+    } else {
+      children.add(
+        CardGrid(
+          spacing: AppSpacing.md,
+          children: [for (final course in controller.entries) card(course)],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: AppSpacing.screenHorizontal,
+      children: [
+        CenteredContent(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
+        ),
+        // the button floats over the list, so the last row stays reachable
+        const SizedBox(height: AppSpacing.xxxxl + AppSpacing.xl),
+      ],
+    );
+  }
+}
+
+class _CourseCard extends StatelessWidget {
+  const _CourseCard({
+    required this.course,
+    required this.resolved,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Course course;
+  final CourseGrade resolved;
+  final VoidCallback onOpen;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = GpaStrings.of(context);
+
+    return AppCard(
+      onTap: onOpen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GpaGradeBadge(
+                letter: formatLetter(strings, resolved),
+                countsTowardGpa: resolved.weighsOnGpa,
+              ),
+              AppSpacing.horizontalMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (course.code.isNotEmpty) ...[
+                      Text(
+                        course.code,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      AppSpacing.verticalXs,
+                    ],
+                    Text(
+                      course.title,
+                      // one course cannot push the list off screen
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: gpaPrimaryText(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _CourseMenu(course: course, onEdit: onEdit, onDelete: onDelete),
+            ],
+          ),
+          AppSpacing.verticalSm,
+          Text(
+            formatCourseMeta(strings, course.credits, resolved),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          if (resolved.assignmentCount > 0) ...[
+            AppSpacing.verticalMd,
+            AppProgressBar(
+              progress: resolved.gradedWeight / 100,
+              height: AppSpacing.xs,
+            ),
+            AppSpacing.verticalSm,
+            Text(
+              formatAssignmentProgress(strings, resolved),
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          if (_chips(strings).isNotEmpty) ...[
+            AppSpacing.verticalMd,
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: _chips(strings),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _chips(GpaStrings strings) => [
+    // without this a muted badge is the same as a course with no marks at all
+    if (resolved.isAttempted && !resolved.weighsOnGpa)
+      GpaStatusChip(
+        label: course.gradingMode == GradingMode.passFail
+            ? strings.gradingModePassFail
+            : strings.passFailNote,
+        icon: AppIcons.checkCircle,
+        tone: GpaTone.info,
+      ),
+    if (!course.includeInGpa)
+      GpaStatusChip(label: strings.excludedFromGpa, icon: AppIcons.info),
+    if (resolved.assignmentCount > 0 && !resolved.isSetupComplete)
+      GpaStatusChip(
+        label: strings.setupIncomplete(resolved.unallocatedWeight),
+        icon: AppIcons.warning,
+        tone: GpaTone.warning,
+      ),
+  ];
+}
+
+// two icon buttons put a destructive action one mis-tap from a scroll
+class _CourseMenu extends StatelessWidget {
+  const _CourseMenu({
     required this.course,
     required this.onEdit,
     required this.onDelete,
@@ -139,60 +644,31 @@ class _CourseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = GpaStrings.of(context);
-    return AppCard(
-      onTap: onEdit,
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(course.title, style: AppTextStyles.titleMedium),
-                AppSpacing.verticalXs,
-                Text(
-                  course.grade == null
-                      ? strings.gradeNotSet
-                      : '${course.grade!.letter}  ·  '
-                            '${strings.courseCredits} ${course.credits}',
-                  style: AppTextStyles.bodySmall,
-                ),
-              ],
-            ),
+    return Semantics(
+      container: true,
+      button: true,
+      label: strings.courseActions(course.title),
+      child: AppMenu<_CourseAction>(
+        tooltip: strings.courseActions(course.title),
+        iconColor: AppColors.textSecondary,
+        onSelected: (action) => switch (action) {
+          _CourseAction.edit => onEdit(),
+          _CourseAction.delete => onDelete(),
+        },
+        items: [
+          AppMenuItem(
+            value: _CourseAction.edit,
+            label: strings.editCourse,
+            icon: AppIcons.edit,
           ),
-          // icon-only control, so the label is the only thing a screen
-          // reader has to go on
-          Semantics(
-            // its own node, so the card's tappable row does not swallow the
-            // label into one long announcement
-            container: true,
+          AppMenuItem(
+            value: _CourseAction.delete,
             label: strings.deleteCourse(course.title),
-            button: true,
-            child: IconButton(
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline),
-              tooltip: strings.deleteCourse(course.title),
-            ),
+            icon: AppIcons.delete,
+            isDestructive: true,
           ),
         ],
       ),
     );
   }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: AppSpacing.screenPadding,
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: AppTextStyles.bodyMedium,
-      ),
-    ),
-  );
 }

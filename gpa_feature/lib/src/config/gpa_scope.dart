@@ -1,49 +1,46 @@
 import 'package:flutter/widgets.dart';
 
 import '../application/gpa_controller.dart';
-import '../data/in_memory_course_repository.dart';
-import '../data/preferences_course_repository.dart';
+import '../data/in_memory_transcript_repository.dart';
+import '../data/preferences_transcript_repository.dart';
 import '../domain/grade.dart';
 import '../domain/repositories.dart';
 import 'gpa_session.dart';
 
-/// Everything the feature needs from the outside, assembled once.
-///
-/// This is the only place that knows both a controller and an implementation.
 class GpaDependencies {
-  const GpaDependencies({required this.courses, required this.scales});
+  const GpaDependencies({required this.transcript, required this.scales});
 
-  final CourseRepository courses;
+  final TranscriptRepository transcript;
   final GradeScaleRepository scales;
+
+  GpaController createController() =>
+      GpaController(transcript: transcript, scales: scales);
 }
 
-/// In-memory only. For tests and for previewing without touching the device.
 GpaDependencies createSampleDependencies() => GpaDependencies(
-  courses: InMemoryCourseRepository(),
+  transcript: InMemoryTranscriptRepository(),
   scales: const StaticGradeScaleRepository(),
 );
 
-/// Courses persisted on this device, namespaced to one account.
 GpaDependencies createLocalDependencies({
   required String accountId,
   GradeScale scale = const FourPointScale(),
 }) => GpaDependencies(
-  courses: PreferencesCourseRepository(accountId: accountId, scale: scale),
+  transcript: PreferencesTranscriptRepository(
+    accountId: accountId,
+    scale: scale,
+  ),
   scales: StaticGradeScaleRepository(scale),
 );
 
-/// Owns the controllers for one mounted session. A new token builds a new
-/// scope, so state from one account cannot structurally survive into the next.
+// the controller is owned by GpaFeature, so a rebuild above cannot swap it
 class GpaScope extends InheritedWidget {
-  GpaScope({
+  const GpaScope({
     super.key,
     required this.session,
-    required GpaDependencies dependencies,
+    required this.gpa,
     required super.child,
-  }) : gpa = GpaController(
-         courses: dependencies.courses,
-         scales: dependencies.scales,
-       );
+  });
 
   final GpaSession session;
   final GpaController gpa;
@@ -56,5 +53,6 @@ class GpaScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(GpaScope oldWidget) =>
-      oldWidget.session.accessToken != session.accessToken;
+      oldWidget.session.accessToken != session.accessToken ||
+      oldWidget.gpa != gpa;
 }

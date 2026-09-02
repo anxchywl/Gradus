@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import '../tokens/app_colors.dart';
 
-/// Toast types for different styles
 enum ToastType { success, error, warning, info }
 
-/// Individual toast data
 class _ToastData {
   final String id;
   final String message;
@@ -18,12 +16,6 @@ class _ToastData {
     : createdAt = DateTime.now();
 }
 
-/// A toast manager that shows beautiful stacking toasts with smooth animations.
-/// Features:
-/// - Toasts stack from top (newest on top)
-/// - Swipe left/right to dismiss with spring physics
-/// - Auto-dismiss after 4 seconds
-/// - Smooth slide animations when toasts are removed (others slide up)
 class ToastManager {
   ToastManager._();
 
@@ -34,27 +26,22 @@ class ToastManager {
 
   static String _generateId() => 'toast_${++_idCounter}';
 
-  /// Shows a success toast
   static void showSuccess(BuildContext context, String message) {
     _show(context, _cleanMessage(message), ToastType.success);
   }
 
-  /// Shows an error toast
   static void showError(BuildContext context, String message) {
     _show(context, _cleanMessage(message), ToastType.error);
   }
 
-  /// Shows a warning toast
   static void showWarning(BuildContext context, String message) {
     _show(context, _cleanMessage(message), ToastType.warning);
   }
 
-  /// Shows an info toast
   static void showInfo(BuildContext context, String message) {
     _show(context, _cleanMessage(message), ToastType.info);
   }
 
-  /// Clean message by removing "Exception: " prefix
   static String _cleanMessage(String message) {
     if (message.startsWith('Exception: ')) {
       return message.substring(11);
@@ -63,19 +50,17 @@ class ToastManager {
   }
 
   static void _show(BuildContext context, String message, ToastType type) {
-    // Dismiss keyboard first to prevent overflow issues
+    // an open keyboard overflows the toast, so it goes away first
     FocusScope.of(context).unfocus();
 
     final toast = _ToastData(id: _generateId(), message: message, type: type);
 
-    // Small delay to let keyboard dismiss before showing toast
+    // long enough for the keyboard to be gone before the toast lands
     Future.delayed(const Duration(milliseconds: 100), () {
       if (!context.mounted) return;
 
-      // Add to map (newest first in iteration)
       _toastsMap[toast.id] = toast;
 
-      // Create overlay if not exists
       if (_overlayEntry == null) {
         _overlayEntry = OverlayEntry(
           builder: (ctx) => _ToastOverlay(
@@ -86,11 +71,9 @@ class ToastManager {
         );
         Overlay.of(context).insert(_overlayEntry!);
       } else {
-        // Add toast to existing overlay
         _overlayKey.currentState?.addToast(toast);
       }
 
-      // Auto-dismiss after 4 seconds
       Future.delayed(const Duration(seconds: 4), () {
         _dismissToast(toast.id);
       });
@@ -102,7 +85,6 @@ class ToastManager {
       _toastsMap.remove(id);
       _overlayKey.currentState?.removeToast(id);
 
-      // Remove overlay when empty after animations complete
       if (_toastsMap.isEmpty) {
         Future.delayed(const Duration(milliseconds: 400), () {
           if (_toastsMap.isEmpty && _overlayEntry != null) {
@@ -115,7 +97,6 @@ class ToastManager {
   }
 }
 
-/// The overlay widget that renders all toasts with AnimatedList
 class _ToastOverlay extends StatefulWidget {
   final List<_ToastData> initialToasts;
   final void Function(String id) onDismiss;
@@ -218,7 +199,6 @@ class _ToastOverlayState extends State<_ToastOverlay> {
   }
 }
 
-/// Individual animated toast widget with spring physics for swipe
 class _AnimatedToast extends StatefulWidget {
   final _ToastData toast;
   final VoidCallback onDismiss;
@@ -268,7 +248,6 @@ class _AnimatedToastState extends State<_AnimatedToast>
 
     final velocity = details.velocity.pixelsPerSecond.dx;
 
-    // Dismiss threshold: dragged far enough OR high velocity swipe
     if (_dragOffset.abs() > 100 || velocity.abs() > 800) {
       _isDismissing = true;
       final targetOffset = _dragOffset > 0 ? 400.0 : -400.0;
@@ -284,7 +263,6 @@ class _AnimatedToastState extends State<_AnimatedToast>
             if (mounted) widget.onDismiss();
           });
     } else {
-      // Spring back to center with physics
       final simulation = SpringSimulation(
         SpringDescription.withDampingRatio(mass: 1, stiffness: 500, ratio: 0.7),
         _dragOffset,

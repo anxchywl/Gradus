@@ -2,9 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The layer rules are a build-time promise, not a review convention. This
-/// scans the source so a violation fails the suite rather than surviving to the
-/// next reader.
+// the layer rules are a build-time promise, not a review convention
 Iterable<File> _dartFilesIn(String path) {
   final directory = Directory(path);
   if (!directory.existsSync()) return const <File>[];
@@ -99,7 +97,7 @@ void main() {
       if (file.path.contains('config/gpa_scope.dart')) continue;
       if (file.path.contains('/data/')) continue;
       for (final line in _importsOf(file)) {
-        if (line.contains('in_memory_course_repository')) {
+        if (line.contains('in_memory_transcript_repository')) {
           offenders.add('${file.path}: $line');
         }
       }

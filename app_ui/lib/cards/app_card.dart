@@ -2,20 +2,6 @@ import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 
-/// Generic card widget with consistent styling.
-/// Use as a container for content sections.
-///
-/// Example:
-/// ```dart
-/// AppCard(
-///   child: Column(
-///     children: [
-///       Text('Card Title'),
-///       Text('Card Content'),
-///     ],
-///   ),
-/// )
-/// ```
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
@@ -32,37 +18,26 @@ class AppCard extends StatelessWidget {
     this.clipBehavior = Clip.none,
   });
 
-  /// Card content.
   final Widget child;
 
-  /// Card padding (defaults to AppSpacing.cardPadding).
   final EdgeInsets? padding;
 
-  /// Card margin.
   final EdgeInsets? margin;
 
-  /// Background color.
   final Color? backgroundColor;
 
-  /// Border radius.
   final BorderRadius? borderRadius;
 
-  /// Card elevation/shadow.
   final double elevation;
 
-  /// Optional border.
   final BoxBorder? border;
 
-  /// Tap callback.
   final VoidCallback? onTap;
 
-  /// Fixed width.
   final double? width;
 
-  /// Fixed height.
   final double? height;
 
-  /// Clip behavior.
   final Clip clipBehavior;
 
   @override
@@ -107,7 +82,6 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// Card with header and content sections.
 class AppCardWithHeader extends StatelessWidget {
   const AppCardWithHeader({
     super.key,
@@ -123,34 +97,24 @@ class AppCardWithHeader extends StatelessWidget {
     this.onHeaderTap,
   });
 
-  /// Header title.
   final String title;
 
-  /// Optional subtitle.
   final String? subtitle;
 
-  /// Card content below the header.
   final Widget child;
 
-  /// Trailing widget in header (e.g., action button).
   final Widget? trailing;
 
-  /// Card padding.
   final EdgeInsets? padding;
 
-  /// Background color.
   final Color? backgroundColor;
 
-  /// Border radius.
   final BorderRadius? borderRadius;
 
-  /// Card elevation.
   final double elevation;
 
-  /// Tap callback for the entire card.
   final VoidCallback? onTap;
 
-  /// Tap callback for just the header.
   final VoidCallback? onHeaderTap;
 
   @override
@@ -171,7 +135,6 @@ class AppCardWithHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
           InkWell(
             onTap: onHeaderTap,
             borderRadius: BorderRadius.only(
@@ -210,7 +173,6 @@ class AppCardWithHeader extends StatelessWidget {
               ),
             ),
           ),
-          // Content
           Padding(
             padding: (padding ?? AppSpacing.cardPadding).copyWith(top: 0),
             child: child,

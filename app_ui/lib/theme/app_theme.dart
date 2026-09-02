@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../tokens/app_colors.dart';
 
-/// Application theme configuration.
-/// Provides Light and Dark ThemeData for the entire application.
 class AppTheme {
   AppTheme._();
 
@@ -14,7 +12,6 @@ class AppTheme {
       fontFamily: 'Geist',
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.background,
-      // Disable all InkWell/InkResponse ripple and press-highlight app-wide.
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
@@ -48,11 +45,6 @@ class AppTheme {
     );
   }
 
-  // Dark mode palette:
-  //   Background : #171717
-  //   Surface    : #242424  (cards, elevated containers)
-  //   Text       : #F5F5F5  ("Up" — near-white for readability)
-  //   Accent     : #A78BFA  ("Down" — soft lavender primary)
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -60,7 +52,6 @@ class AppTheme {
       fontFamily: 'Geist',
       primaryColor: AppColors.primaryAccentDark,
       scaffoldBackgroundColor: const Color(0xFF171717),
-      // Disable all InkWell/InkResponse ripple and press-highlight app-wide.
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
@@ -215,7 +206,6 @@ class AppTheme {
     );
   }
 
-  // Dark-mode variant: lavender accent button
   static ElevatedButtonThemeData _elevatedButtonThemeDark() {
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(

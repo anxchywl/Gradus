@@ -62,8 +62,7 @@ async def handle_validation_error(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
-    # locations and types only; echoing submitted values back would put user
-    # input into logs and error surfaces for free
+    # locations and types only, echoing values would put user input into logs
     details = [
         {"location": [str(part) for part in error["loc"]], "type": error["type"]}
         for error in exc.errors()
@@ -90,8 +89,7 @@ async def handle_http_error(
 
 
 async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-    # the message is deliberately fixed: a stack trace, a SQL fragment or an
-    # upstream message must never reach a client
+    # a stack trace, a SQL fragment or an upstream message must never reach a client
     return error_response(
         request,
         status_code=500,

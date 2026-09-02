@@ -1,12 +1,11 @@
-import 'course.dart';
 import 'grade.dart';
+import 'transcript.dart';
 
-/// Implemented under `data/`. Nothing above this layer may name an
-/// implementation; a boundary test enforces that.
-abstract interface class CourseRepository {
-  Future<List<Course>> load();
+// implemented under data, a boundary test stops anything above naming it
+abstract interface class TranscriptRepository {
+  Future<Transcript> load();
 
-  Future<void> save(List<Course> courses);
+  Future<void> save(Transcript transcript);
 }
 
 abstract interface class GradeScaleRepository {

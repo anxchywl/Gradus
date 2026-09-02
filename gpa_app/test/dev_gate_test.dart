@@ -44,8 +44,7 @@ void main() {
   });
 
   test('no development token is compiled in by default', () {
-    // a token baked into a distributed binary is not a secret; there is no
-    // default so a build that forgets to supply one simply does not open
+    // no default, so a token baked into a distributed binary cannot happen
     expect(developmentUserToken, isEmpty);
     expect(developmentOperatorToken, isEmpty);
   });

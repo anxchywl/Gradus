@@ -89,8 +89,7 @@ def test_an_operator_token_reaches_an_operator_endpoint(client: TestClient) -> N
 
 
 def test_a_client_cannot_claim_operator_status(client: TestClient) -> None:
-    # role comes from the resolved credential; nothing the caller sends can
-    # promote it, whatever header or parameter it arrives in
+    # role comes from the resolved credential, nothing the caller sends can promote it
     with client:
         response = client.get(
             "/api/v1/operations?is_operator=true",

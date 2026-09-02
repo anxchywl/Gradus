@@ -5,7 +5,6 @@ import '../icons/app_icon.dart';
 import '../icons/app_icons.dart';
 import '../tokens/app_colors.dart';
 
-/// Global search bar widget for Hub and other search-enabled pages.
 class GlobalSearchBar extends StatelessWidget {
   const GlobalSearchBar({
     super.key,

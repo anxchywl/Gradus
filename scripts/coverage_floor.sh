@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fails when line coverage in an lcov report is below the given floor.
+# fails when line coverage in an lcov report is below the given floor
 # generated localizations are excluded: they come from the arb files, and
 # testing them would measure the generator rather than this code
 set -euo pipefail

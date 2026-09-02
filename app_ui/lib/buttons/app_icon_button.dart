@@ -2,16 +2,6 @@ import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 
-/// Icon button with optional background.
-/// Use for icon-only actions like close, menu, etc.
-///
-/// Example:
-/// ```dart
-/// AppIconButton(
-///   icon: Icon(AppIcons.closeIcon),
-///   onPressed: () => Navigator.pop(context),
-/// )
-/// ```
 class AppIconButton extends StatelessWidget {
   const AppIconButton({
     super.key,
@@ -25,28 +15,20 @@ class AppIconButton extends StatelessWidget {
     this.isLoading = false,
   });
 
-  /// Icon widget to display.
   final Widget icon;
 
-  /// Callback when button is pressed.
   final VoidCallback? onPressed;
 
-  /// Whether the button is enabled.
   final bool isEnabled;
 
-  /// Button size variant.
   final AppIconButtonSize size;
 
-  /// Background color (transparent by default).
   final Color? backgroundColor;
 
-  /// Icon color override.
   final Color? iconColor;
 
-  /// Tooltip text.
   final String? tooltip;
 
-  /// Whether to show loading indicator.
   final bool isLoading;
 
   @override
@@ -108,7 +90,6 @@ class AppIconButton extends StatelessWidget {
   }
 }
 
-/// Icon button size variants.
 enum AppIconButtonSize {
   small(32, 16),
   medium(40, 20),

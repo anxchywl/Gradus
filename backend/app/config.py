@@ -20,8 +20,7 @@ class AuthAdapter(StrEnum):
 
 
 class Settings(BaseSettings):
-    # the environment is authoritative, and defaults to the strict one so a
-    # missing variable fails closed rather than opening a development path
+    # the environment is authoritative and defaults to strict, so it fails closed
     environment: AppEnvironment = Field(
         default=AppEnvironment.production,
         alias="APP_ENV",

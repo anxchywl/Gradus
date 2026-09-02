@@ -7,14 +7,8 @@ from app.domain.auth import AccountStatus, ExternalIdentity, TokenIdentityResolv
 from app.domain.errors import UnauthorizedError
 
 
+# rejects every token on purpose, replace it rather than fall back to development
 class UnavailableHostPrincipalResolver:
-    """Placeholder for <AUTHENTICATION_HOST>.
-
-    It rejects every token on purpose: the issuer, audience, signature and
-    claims are not decided yet. Replace it before anything is deployed; do not
-    fall back to the development resolver.
-    """
-
     async def resolve(self, token: str) -> ExternalIdentity:
         raise UnauthorizedError(
             "host_auth_unconfigured",
@@ -22,9 +16,8 @@ class UnavailableHostPrincipalResolver:
         )
 
 
+# config refuses to build this in production
 class DevelopmentPrincipalResolver:
-    """Local development only. Config refuses to build this in production."""
-
     def __init__(self, settings: Settings) -> None:
         student = settings.development_auth_token
         operator = settings.development_operator_auth_token

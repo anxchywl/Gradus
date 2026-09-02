@@ -54,6 +54,6 @@ its request, response and error codes.
 
 | Flutter interface | Endpoint | Request | Response | Errors |
 |---|---|---|---|---|
-| `CourseRepository.load` | not implemented | - | - | - |
-| `CourseRepository.save` | not implemented | - | - | - |
+| `TranscriptRepository.load` | not implemented | - | - | - |
+| `TranscriptRepository.save` | not implemented | - | - | - |
 | `GradeScaleRepository.active` | not implemented | - | - | - |

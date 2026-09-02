@@ -5,17 +5,6 @@ import '../tokens/app_text_styles.dart';
 import '../icons/app_icons.dart';
 import '../icons/app_icon.dart';
 
-/// List tile widget with consistent styling.
-/// Use for settings, menu items, etc.
-///
-/// Example:
-/// ```dart
-/// AppListTile(
-///   title: 'Settings',
-///   leading: AppIcon(AppIcons.settings),
-///   onTap: () => navigateToSettings(),
-/// )
-/// ```
 class AppListTile extends StatelessWidget {
   const AppListTile({
     super.key,
@@ -32,37 +21,26 @@ class AppListTile extends StatelessWidget {
     this.showDivider = false,
   });
 
-  /// Title text.
   final String title;
 
-  /// Subtitle text.
   final String? subtitle;
 
-  /// Leading widget (icon, avatar, etc.).
   final Widget? leading;
 
-  /// Trailing widget.
   final Widget? trailing;
 
-  /// Tap callback.
   final VoidCallback? onTap;
 
-  /// Whether the tile is enabled.
   final bool enabled;
 
-  /// Whether to show chevron arrow.
   final bool showChevron;
 
-  /// Custom padding.
   final EdgeInsets? padding;
 
-  /// Background color.
   final Color? backgroundColor;
 
-  /// Whether to use dense layout.
   final bool dense;
 
-  /// Whether to show bottom divider.
   final bool showDivider;
 
   @override

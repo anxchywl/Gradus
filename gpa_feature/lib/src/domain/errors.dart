@@ -1,4 +1,3 @@
-/// Failures the domain can describe without knowing how they are shown.
 sealed class GpaFailure implements Exception {
   const GpaFailure(this.code);
 
@@ -7,6 +6,19 @@ sealed class GpaFailure implements Exception {
 
 class InvalidCourseFailure extends GpaFailure {
   const InvalidCourseFailure(super.code);
+}
+
+class InvalidSemesterFailure extends GpaFailure {
+  const InvalidSemesterFailure(super.code);
+}
+
+class InvalidAssignmentFailure extends GpaFailure {
+  const InvalidAssignmentFailure(super.code);
+}
+
+// deleting a semester would take its courses with it
+class SemesterNotEmptyFailure extends GpaFailure {
+  const SemesterNotEmptyFailure() : super('semester_not_empty');
 }
 
 class UnknownGradeFailure extends GpaFailure {

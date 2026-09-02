@@ -3,16 +3,6 @@ import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_text_styles.dart';
 
-/// Primary button with filled background.
-/// Use for main call-to-action buttons.
-///
-/// Example:
-/// ```dart
-/// AppPrimaryButton(
-///   text: 'Continue',
-///   onPressed: () => doSomething(),
-/// )
-/// ```
 class AppPrimaryButton extends StatefulWidget {
   const AppPrimaryButton({
     super.key,
@@ -26,28 +16,20 @@ class AppPrimaryButton extends StatefulWidget {
     this.size = AppButtonSize.large,
   });
 
-  /// Button label text.
   final String text;
 
-  /// Callback when button is pressed. If null, button appears disabled.
   final VoidCallback? onPressed;
 
-  /// Whether to show loading indicator.
   final bool isLoading;
 
-  /// Whether the button is enabled.
   final bool isEnabled;
 
-  /// Optional leading icon widget.
   final Widget? icon;
 
-  /// Custom width (defaults to full width).
   final double? width;
 
-  /// Custom height (overrides size).
   final double? height;
 
-  /// Button size variant.
   final AppButtonSize size;
 
   double get _height => height ?? size.height;
@@ -129,7 +111,6 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
   }
 }
 
-/// Button size variants.
 enum AppButtonSize {
   small(AppSpacing.buttonHeightSm, AppSpacing.buttonPaddingCompact),
   medium(AppSpacing.buttonHeightDf, AppSpacing.buttonPaddingCompact),

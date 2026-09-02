@@ -5,16 +5,6 @@ import '../tokens/app_text_styles.dart';
 import '../icons/app_icons.dart';
 import '../icons/app_icon.dart';
 
-/// Global AppBar widget with consistent height and behavior.
-/// Features: 56px height, centered title, optional divider.
-///
-/// Example:
-/// ```dart
-/// AppAppBar(
-///   title: 'Profile',
-///   showBackButton: true,
-/// )
-/// ```
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppAppBar({
     super.key,
@@ -32,41 +22,28 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showDivider = false,
   });
 
-  /// The title text to display.
   final String? title;
 
-  /// Custom title widget (takes precedence over [title]).
   final Widget? titleWidget;
 
-  /// Custom leading widget (takes precedence over back button).
   final Widget? leading;
 
-  /// Width of the leading widget slot. Defaults to Flutter's kToolbarHeight (56).
-  /// Set to a smaller value (e.g. 52) when using a compact avatar or icon.
   final double? leadingWidth;
 
-  /// List of action widgets to display on the right.
   final List<Widget>? actions;
 
-  /// Whether to show the default back button.
   final bool showBackButton;
 
-  /// Callback when back button is pressed.
   final VoidCallback? onBackPressed;
 
-  /// Whether to center the title.
   final bool centerTitle;
 
-  /// Custom background color.
   final Color? backgroundColor;
 
-  /// AppBar elevation.
   final double elevation;
 
-  /// Bottom widget (e.g., TabBar).
   final PreferredSizeWidget? bottom;
 
-  /// Whether to show bottom divider.
   final bool showDivider;
 
   @override
@@ -101,7 +78,6 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    // Build the bottom widget with optional divider
     PreferredSizeWidget? effectiveBottom = bottom;
     if (showDivider || bottom != null) {
       effectiveBottom = PreferredSize(
@@ -156,13 +132,6 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// Floating sliver app bar that scrolls away on scroll-down and snaps back
-/// on scroll-up. Styled identically to [AppAppBar].
-///
-/// Use inside a [CustomScrollView]:
-/// ```dart
-/// CustomScrollView(slivers: [AppSliverAppBar(title: 'Events'), SliverList(...)])
-/// ```
 class AppSliverAppBar extends StatelessWidget {
   const AppSliverAppBar({
     super.key,
@@ -224,7 +193,6 @@ class AppSliverAppBar extends StatelessWidget {
   }
 }
 
-/// Simple AppBar with just back button and title.
 class AppSimpleAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppSimpleAppBar({super.key, required this.title, this.onBackPressed});
 

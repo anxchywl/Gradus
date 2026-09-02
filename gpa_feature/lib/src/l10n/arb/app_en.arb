@@ -4,11 +4,11 @@
   "@featureTitle": {
     "description": "Title of the GPA feature screen"
   },
-  "noCourses": "No courses yet. Add one to see your GPA.",
+  "noCourses": "No courses yet",
   "@noCourses": {
     "description": "Empty state on the GPA screen"
   },
-  "loadFailed": "Could not load your courses. Try again.",
+  "loadFailed": "Could not load your courses",
   "@loadFailed": {
     "description": "Error state on the GPA screen"
   },
@@ -29,6 +29,19 @@
       }
     }
   },
+  "gpaNumber": "{value}",
+  "@gpaNumber": {
+    "description": "A grade point average with no label, for a dense row",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 2
+        }
+      }
+    }
+  },
   "courseCount": "{count, plural, =0{No courses} =1{1 course} other{{count} courses}}",
   "@courseCount": {
     "description": "Number of courses counted; exercises plural categories",
@@ -39,22 +52,20 @@
     }
   },
   "addCourse": "Add course",
+  "@addCourse": {
+    "description": "Button that opens the new-course form"
+  },
   "editCourse": "Edit course",
   "courseTitle": "Course",
+  "courseCode": "Course code",
   "courseCredits": "Credits",
   "courseGrade": "Grade",
   "gradeNotSet": "Not graded yet",
   "save": "Save",
   "cancel": "Cancel",
+  "done": "Done",
   "delete": "Delete",
   "deleteCourse": "Delete {title}",
-  "titleRequired": "Enter a course name",
-  "creditsRequired": "Enter credits between 0 and 24",
-  "creditsSummary": "{quality} of {attempted} credits counted",
-  "saveFailed": "Could not save. Your change was undone.",
-  "@addCourse": {
-    "description": "Button that opens the new-course form"
-  },
   "@deleteCourse": {
     "description": "Semantics label for the delete control",
     "placeholders": {
@@ -63,8 +74,190 @@
       }
     }
   },
-  "@creditsSummary": {
-    "description": "How many credits count toward the average out of those attempted",
+  "titleRequired": "Enter a course name",
+  "creditsRequired": "Enter credits between 0 and 24",
+  "saveFailed": "Could not save. Your change was undone.",
+  "valueUnavailable": "—",
+  "@valueUnavailable": {
+    "description": "Placeholder for a figure that has no value yet; an em dash rather than a zero"
+  },
+  "allSemesters": "All semesters",
+  "semesterLabel": "Semester",
+  "addSemester": "Add semester",
+  "editSemester": "Edit semester",
+  "semesterName": "Semester name",
+  "semesterNameHelp": "For example, Fall 2026.",
+  "semesterNameRequired": "Enter a semester name",
+  "unnamedSemester": "Unnamed semester",
+  "deleteSemester": "Delete {name}",
+  "@deleteSemester": {
+    "description": "Semantics label for the semester delete control",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteSemesterBlocked": "Move or delete its courses first",
+  "deleteSemesterConfirm": "Delete {name}? This cannot be undone.",
+  "@deleteSemesterConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noSemesters": "No semesters yet",
+  "semesterGpa": "Semester GPA",
+  "cumulativeGpa": "Cumulative GPA",
+  "gradingMode": "Grading",
+  "gradingModeGraded": "Graded",
+  "gradingModePassFail": "Pass/fail",
+  "passFailNote": "Counts as attempted credit, not toward the GPA.",
+  "includeInGpa": "Include in GPA",
+  "excludedFromGpa": "Not counted in the GPA",
+  "assignmentsTitle": "Assignments",
+  "addAssignment": "Add assignment",
+  "editAssignment": "Edit assignment",
+  "deleteAssignment": "Delete {name}",
+  "@deleteAssignment": {
+    "description": "Semantics label for the assignment delete control",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAssignmentConfirm": "Delete {name}? This cannot be undone.",
+  "@deleteAssignmentConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteCourseConfirm": "Delete {title} and its assignments? This cannot be undone.",
+  "@deleteCourseConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "assignmentName": "Assignment name",
+  "assignmentNameHelp": "Used for the course grade and for tracking.",
+  "assignmentNameRequired": "Enter an assignment name",
+  "assignmentWeight": "Weight",
+  "assignmentWeightHelp": "Percentage of the final course grade, from 0 to 100.",
+  "assignmentWeightRequired": "Enter a weight above 0 and up to 100",
+  "assignmentWeightOverBudget": "Only {available}% is still unallocated in this course",
+  "@assignmentWeightOverBudget": {
+    "placeholders": {
+      "available": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "maximumScore": "Max score",
+  "maximumScoreRequired": "Enter a max score above 0",
+  "earnedScore": "Obtained score",
+  "earnedScoreHelp": "Leave this empty until the work is graded.",
+  "earnedScoreRequired": "Enter a score between 0 and the max score",
+  "noAssignments": "No assignments yet",
+  "currentGrade": "Current grade",
+  "earnedTowardFinal": "Earned toward final",
+  "gradedWeightLabel": "Graded weight",
+  "remainingWeightLabel": "Remaining weight",
+  "unallocatedWeightLabel": "Unallocated",
+  "maximumPossible": "Max possible",
+  "maximumPossibleNote": "Assumes full marks on everything not yet graded.",
+  "setupIncomplete": "{percent}% of this course's grading setup is unallocated.",
+  "@setupIncomplete": {
+    "placeholders": {
+      "percent": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "setupComplete": "Grading setup adds up to 100%.",
+  "noGradedAssignments": "Nothing is graded yet, so there is no grade to show.",
+  "assignmentProgress": "{graded} of {total} graded",
+  "@assignmentProgress": {
+    "placeholders": {
+      "graded": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "percentValue": "{value}%",
+  "@percentValue": {
+    "description": "A percentage rounded for display",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "weightPercent": "{value}%",
+  "@weightPercent": {
+    "description": "A weight, which students enter as a whole number far more often than not",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "creditsValue": "{value} cr",
+  "@creditsValue": {
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "gradeFromAssignments": "From assignments",
+  "gradeFromManual": "Entered by hand",
+  "courseUnavailable": "This course is no longer available.",
+  "noSemestersBody": "Create a semester, then add the courses you are taking.",
+  "noCoursesBody": "Add a course to see your GPA for this semester.",
+  "noAssignmentsBody": "Add assignments and their weights to work the grade out from your own marks.",
+  "loadFailedBody": "Something went wrong reading this device.",
+  "retry": "Try again",
+  "gpaNone": "GPA —",
+  "semesterActions": "Semester options",
+  "courseActions": "Options for {title}",
+  "assignmentActions": "Options for {name}",
+  "@courseActions": {
+    "description": "Semantics label for the per-course overflow menu",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@assignmentActions": {
+    "description": "Semantics label for the per-assignment overflow menu",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsCountedLabel": "Credits counted",
+  "creditsRatio": "{quality} of {attempted}",
+  "@creditsRatio": {
+    "description": "A stat value: how many credits count out of those attempted",
     "placeholders": {
       "quality": {
         "type": "double",

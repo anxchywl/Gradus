@@ -4,29 +4,9 @@ import '../icons/app_icon.dart';
 import '../icons/app_icons.dart';
 import '../tokens/app_colors.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AppBottomSheet
-//
-// Premium-styled bottom sheet that matches AppPremiumDialog's visual language:
-// same surface colours, corner radius, drag handle, typography, and spacing.
-//
-// Three entry points:
-//
-//   AppBottomSheet.show(...)          — arbitrary content
-//   AppBottomSheet.showSelection(...) — icon + title + subtitle option list
-//
-// Example:
-//   final kind = await AppBottomSheet.showSelection<_Kind>(
-//     context: context,
-//     title: 'Choose media',
-//     options: [ AppBottomSheetOption(title: 'Photo', value: _Kind.photo, ...) ],
-//   );
-// ─────────────────────────────────────────────────────────────────────────────
-
 class AppBottomSheet {
   AppBottomSheet._();
 
-  /// Show a bottom sheet with arbitrary [child] content.
   static Future<T?> show<T>({
     required BuildContext context,
     required Widget child,
@@ -56,10 +36,6 @@ class AppBottomSheet {
     );
   }
 
-  /// Show a premium option-list bottom sheet.
-  ///
-  /// Each option renders a leading icon container, title, optional subtitle,
-  /// and a check-mark on the selected value.
   static Future<T?> showSelection<T>({
     required BuildContext context,
     required String title,
@@ -83,10 +59,6 @@ class AppBottomSheet {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Option model
-// ─────────────────────────────────────────────────────────────────────────────
-
 class AppBottomSheetOption<T> {
   const AppBottomSheetOption({
     required this.title,
@@ -99,13 +71,8 @@ class AppBottomSheetOption<T> {
   final T value;
   final String? subtitle;
 
-  /// Optional leading widget. Typically a 40×40 branded circle icon.
   final Widget? leading;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// _Sheet — generic content wrapper
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _Sheet<T> extends StatelessWidget {
   const _Sheet({required this.child, this.title, this.maxHeightFraction = 0.9});
@@ -135,10 +102,8 @@ class _Sheet<T> extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Drag handle ──────────────────────────────────────────
             _DragHandle(isLight: isLight),
 
-            // ── Optional title ───────────────────────────────────────
             if (title != null) ...[
               const SizedBox(height: 2),
               Padding(
@@ -160,7 +125,6 @@ class _Sheet<T> extends StatelessWidget {
             ] else
               const SizedBox(height: 4),
 
-            // ── Content ──────────────────────────────────────────────
             Flexible(child: SingleChildScrollView(child: child)),
 
             SizedBox(height: mq.padding.bottom + 8),
@@ -170,10 +134,6 @@ class _Sheet<T> extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// _SelectionSheet — option list
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _SelectionSheet<T> extends StatelessWidget {
   const _SelectionSheet({
@@ -208,10 +168,8 @@ class _SelectionSheet<T> extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Drag handle ──────────────────────────────────────────
             _DragHandle(isLight: isLight),
 
-            // ── Title ────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
               child: Text(
@@ -226,7 +184,6 @@ class _SelectionSheet<T> extends StatelessWidget {
               ),
             ),
 
-            // ── Options ──────────────────────────────────────────────
             ...List.generate(options.length, (i) {
               final option = options[i];
               final isSelected = option.value == selectedValue;
@@ -263,10 +220,6 @@ class _SelectionSheet<T> extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// _OptionTile
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _OptionTile<T> extends StatefulWidget {
   const _OptionTile({
@@ -310,13 +263,11 @@ class _OptionTileState<T> extends State<_OptionTile<T>> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
         child: Row(
           children: [
-            // ── Leading icon ─────────────────────────────────────
             if (widget.option.leading != null) ...[
               widget.option.leading!,
               const SizedBox(width: 14),
             ],
 
-            // ── Text ─────────────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,7 +299,6 @@ class _OptionTileState<T> extends State<_OptionTile<T>> {
               ),
             ),
 
-            // ── Selection check ───────────────────────────────────
             if (widget.isSelected) ...[
               SizedBox(width: 12),
               AppIcon(AppIcons.check, size: 18, color: AppColors.primary),
@@ -359,10 +309,6 @@ class _OptionTileState<T> extends State<_OptionTile<T>> {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// _DragHandle
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _DragHandle extends StatelessWidget {
   const _DragHandle({required this.isLight});

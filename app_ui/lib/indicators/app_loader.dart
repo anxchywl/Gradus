@@ -2,13 +2,6 @@ import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 
-/// Loader/spinner widget with consistent styling.
-///
-/// Example:
-/// ```dart
-/// AppLoader()
-/// AppLoader.overlay() // Full screen overlay
-/// ```
 class AppLoader extends StatelessWidget {
   const AppLoader({
     super.key,
@@ -17,13 +10,10 @@ class AppLoader extends StatelessWidget {
     this.strokeWidth = 3.0,
   });
 
-  /// Size variant.
   final AppLoaderSize size;
 
-  /// Custom color.
   final Color? color;
 
-  /// Stroke width.
   final double strokeWidth;
 
   @override
@@ -40,7 +30,6 @@ class AppLoader extends StatelessWidget {
     );
   }
 
-  /// Create a centered loader.
   static Widget centered({
     AppLoaderSize size = AppLoaderSize.medium,
     Color? color,
@@ -50,7 +39,6 @@ class AppLoader extends StatelessWidget {
     );
   }
 
-  /// Create a full-screen overlay loader.
   static Widget overlay({
     AppLoaderSize size = AppLoaderSize.large,
     Color? color,
@@ -59,7 +47,6 @@ class AppLoader extends StatelessWidget {
     return _LoaderOverlay(size: size, color: color, message: message);
   }
 
-  /// Show a loader dialog.
   static Future<void> showDialog({
     required BuildContext context,
     String? message,
@@ -73,13 +60,11 @@ class AppLoader extends StatelessWidget {
     );
   }
 
-  /// Hide the loader dialog.
   static void hideDialog(BuildContext context) {
     Navigator.of(context).pop();
   }
 }
 
-/// Loader size variants.
 enum AppLoaderSize {
   small(20),
   medium(32),

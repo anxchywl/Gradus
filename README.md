@@ -54,8 +54,9 @@ Each document owns its subject once; nothing is repeated.
 
 - No production authentication. The host resolver rejects every token by design,
   because its issuer, audience, signature and claims are undecided.
-- No persistence, no migrations, no deployment, no backups.
+- No server-side persistence, no database migrations, no deployment, no
+  backups. A student's transcript lives on their own device.
 - The four-point grade scale in the domain is an example so the rules are
-  testable, not an institutional decision.
+  testable, not an institutional decision. So are its percentage cutoffs.
 
 Nothing here is deployable. It is a foundation, and it says so.
