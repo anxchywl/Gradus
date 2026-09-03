@@ -17,7 +17,7 @@ export 'src/config/gradus_scope.dart'
 export 'src/config/gradus_session.dart'
     show GradusBackend, GradusConfig, GradusSession;
 export 'src/domain/assignment.dart' show Assignment;
-export 'src/domain/course.dart' show Course, GradingMode;
+export 'src/domain/course.dart' show Course;
 export 'src/domain/course_grade.dart'
     show CourseGrade, GradeSource, calculateCourseGrade;
 export 'src/domain/errors.dart';

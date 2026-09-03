@@ -17,19 +17,12 @@ Assignment _assignment({
   earnedScore: earnedScore,
 );
 
-Course _course(
-  List<Assignment> assignments, {
-  Grade? grade,
-  GradingMode gradingMode = GradingMode.graded,
-  bool includeInGpa = true,
-}) => Course(
+Course _course(List<Assignment> assignments, {Grade? grade}) => Course(
   id: 'c1',
   semesterId: 'fall',
   title: 'Programming Languages',
   credits: 3,
   grade: grade,
-  gradingMode: gradingMode,
-  includeInGpa: includeInGpa,
   assignments: assignments,
 );
 
@@ -160,7 +153,6 @@ void main() {
       expect(resolved.currentPercentage, isNull);
       expect(resolved.earnedPercentage, 0);
       expect(resolved.gradedWeight, 0);
-      expect(resolved.remainingWeight, 100);
       expect(resolved.grade, isNull);
       expect(resolved.source, GradeSource.none);
     });
@@ -181,7 +173,6 @@ void main() {
       );
       expect(resolved.earnedPercentage, 20);
       expect(resolved.gradedWeight, 25);
-      expect(resolved.remainingWeight, 75);
       expect(resolved.gradedCount, 1);
       expect(resolved.assignmentCount, 2);
     });
@@ -197,7 +188,6 @@ void main() {
 
       expect(resolved.currentPercentage, closeTo(84, 1e-9));
       expect(resolved.earnedPercentage, closeTo(84, 1e-9));
-      expect(resolved.remainingWeight, 0);
       expect(resolved.isSetupComplete, isTrue);
       expect(resolved.unallocatedWeight, 0);
       expect(resolved.grade!.letter, 'B+');
@@ -279,35 +269,6 @@ void main() {
       expect(resolved.grade!.letter, 'A');
       expect(resolved.source, GradeSource.manual);
       expect(resolved.weighsOnGpa, isTrue);
-    });
-
-    test('a pass/fail course is attempted without weighing', () {
-      final resolved = calculateCourseGrade(
-        _course([
-          _assignment(id: 'a', weight: 100, earnedScore: 95),
-        ], gradingMode: GradingMode.passFail),
-        _scale,
-      );
-
-      expect(resolved.isAttempted, isTrue);
-      expect(resolved.weighsOnGpa, isFalse);
-      expect(
-        resolved.currentPercentage,
-        95,
-        reason: 'the student still gets to see how they are doing',
-      );
-    });
-
-    test('an excluded course is neither attempted nor weighed', () {
-      final resolved = calculateCourseGrade(
-        _course([
-          _assignment(id: 'a', weight: 100, earnedScore: 95),
-        ], includeInGpa: false),
-        _scale,
-      );
-
-      expect(resolved.isAttempted, isFalse);
-      expect(resolved.weighsOnGpa, isFalse);
     });
 
     test('a manual pass counts as attempted, exactly as it always did', () {

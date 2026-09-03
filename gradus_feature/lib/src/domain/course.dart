@@ -3,9 +3,6 @@ import 'errors.dart';
 import 'grade.dart';
 import 'weights.dart';
 
-// a pass/fail course says it about itself, so it needs no letter to be honest
-enum GradingMode { graded, passFail }
-
 class Course {
   Course({
     required this.id,
@@ -14,8 +11,6 @@ class Course {
     required this.credits,
     this.code = '',
     this.grade,
-    this.gradingMode = GradingMode.graded,
-    this.includeInGpa = true,
     this.assignments = const [],
   }) {
     if (id.isEmpty) {
@@ -58,13 +53,7 @@ class Course {
 
   // still the source for courses entered before assignments existed
   final Grade? grade;
-  final GradingMode gradingMode;
-
-  final bool includeInGpa;
   final List<Assignment> assignments;
-
-  bool get isEligibleForGpa =>
-      includeInGpa && gradingMode == GradingMode.graded;
 
   Course copyWith({
     String? semesterId,
@@ -72,8 +61,6 @@ class Course {
     String? title,
     double? credits,
     Grade? grade,
-    GradingMode? gradingMode,
-    bool? includeInGpa,
     List<Assignment>? assignments,
   }) => Course(
     id: id,
@@ -82,8 +69,6 @@ class Course {
     title: title ?? this.title,
     credits: credits ?? this.credits,
     grade: grade ?? this.grade,
-    gradingMode: gradingMode ?? this.gradingMode,
-    includeInGpa: includeInGpa ?? this.includeInGpa,
     assignments: assignments ?? this.assignments,
   );
 }

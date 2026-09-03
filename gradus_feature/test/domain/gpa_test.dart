@@ -11,16 +11,12 @@ Course _course(
   double credits,
   Grade? grade, {
   String semesterId = 'fall',
-  GradingMode gradingMode = GradingMode.graded,
-  bool includeInGpa = true,
 }) => Course(
   id: id,
   semesterId: semesterId,
   title: 'Course $id',
   credits: credits,
   grade: grade,
-  gradingMode: gradingMode,
-  includeInGpa: includeInGpa,
 );
 
 void main() {
@@ -50,27 +46,19 @@ void main() {
       expect(result.attemptedCredits, 6);
     });
 
-    test(
-      'a pass/fail course counts as attempted, never toward the average',
-      () {
-        final result = calculateGpa([
-          _course('1', 3, _a),
-          _course('2', 4, _b, gradingMode: GradingMode.passFail),
-        ], _scale);
-        expect(result.value, 4.0, reason: 'the B must not move the average');
-        expect(result.qualityCredits, 3);
-        expect(result.attemptedCredits, 7);
-      },
-    );
-
-    test('a course excluded from the GPA counts toward nothing at all', () {
+    test('a letter carrying no points counts as attempted, never toward the '
+        'average', () {
       final result = calculateGpa([
         _course('1', 3, _a),
-        _course('2', 4, _b, includeInGpa: false),
+        _course(
+          '2',
+          4,
+          const Grade(letter: 'P', qualityPoints: 0, countsTowardGpa: false),
+        ),
       ], _scale);
-      expect(result.value, 4.0);
+      expect(result.value, 4.0, reason: 'the P must not move the average');
       expect(result.qualityCredits, 3);
-      expect(result.attemptedCredits, 3);
+      expect(result.attemptedCredits, 7);
     });
 
     test('an ungraded course adds no credits at all', () {

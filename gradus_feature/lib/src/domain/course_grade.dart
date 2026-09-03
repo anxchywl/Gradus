@@ -38,8 +38,6 @@ class CourseGrade {
 
   final bool isAttempted;
 
-  double get remainingWeight => configuredWeight - gradedWeight;
-
   // a setup that adds up to 70 leaves 30 unexplained, and saying so matters
   double get unallocatedWeight =>
       fromHundredths(completeWeight - toHundredths(configuredWeight));
@@ -89,12 +87,9 @@ CourseGrade calculateCourseGrade(Course course, GradeScale scale) {
     source = GradeSource.manual;
   }
 
-  final hasOutcome = grade != null || gradedCount > 0;
-  final isAttempted = course.includeInGpa && hasOutcome;
-  final weighsOnGpa =
-      isAttempted &&
-      course.isEligibleForGpa &&
-      (grade?.countsTowardGpa ?? false);
+  final isAttempted = grade != null || gradedCount > 0;
+  // a letter the scale marks as carrying no points earns credit, not points
+  final weighsOnGpa = isAttempted && (grade?.countsTowardGpa ?? false);
 
   return CourseGrade(
     grade: grade,
