@@ -58,12 +58,15 @@ class AppProgressBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 if (label != null)
-                  Text(
-                    label!,
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: isLight
-                          ? AppColors.textPrimary
-                          : AppColors.textPrimaryDark,
+                  // a label long enough to meet the figure wraps, not overflows
+                  Flexible(
+                    child: Text(
+                      label!,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: isLight
+                            ? AppColors.textPrimary
+                            : AppColors.textPrimaryDark,
+                      ),
                     ),
                   ),
                 if (showPercentage)
