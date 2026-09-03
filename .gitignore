@@ -1,7 +1,17 @@
 # secrets and local configuration
+# .env matches the file itself; .env.* catches .env.production and friends;
+# *.env catches production.env. only the examples are ever committed
 .env
+.env.*
 *.env
+!.env.example
 !*.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+key.properties
 
 # python
 .venv/
@@ -30,4 +40,6 @@ gradus_feature/pubspec.lock
 # tooling and os
 .idea/
 .vscode/
+.claude/
 .DS_Store
+*.log
