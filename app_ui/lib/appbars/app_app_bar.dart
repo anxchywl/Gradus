@@ -142,6 +142,7 @@ class AppSliverAppBar extends StatelessWidget {
     this.actions,
     this.centerTitle = true,
     this.pinned = false,
+    this.toolbarHeight,
   });
 
   final String? title;
@@ -151,6 +152,8 @@ class AppSliverAppBar extends StatelessWidget {
   final List<Widget>? actions;
   final bool centerTitle;
   final bool pinned;
+
+  final double? toolbarHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +184,7 @@ class AppSliverAppBar extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      toolbarHeight: AppSpacing.appBarHeight,
+      toolbarHeight: toolbarHeight ?? AppSpacing.appBarHeight,
       floating: true,
       snap: true,
       pinned: pinned,
