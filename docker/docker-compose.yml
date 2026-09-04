@@ -1,24 +1,19 @@
-# local development: data services only. the application runs on the host so
-# iteration does not wait on an image build
+# local development: the service itself, since it depends on nothing else.
+# run it from the host with uvicorn instead when iterating on the code
 name: gradus
 
 services:
-  postgres:
-    image: postgres:16-alpine
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-gradus}
-      POSTGRES_USER: ${POSTGRES_USER:-gradus}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gradus}
+      APP_ENV: ${APP_ENV:-development}
+      AUTH_ADAPTER: ${AUTH_ADAPTER:-development}
+      DEVELOPMENT_AUTH_TOKEN: ${DEVELOPMENT_AUTH_TOKEN:-}
+      DEVELOPMENT_OPERATOR_AUTH_TOKEN: ${DEVELOPMENT_OPERATOR_AUTH_TOKEN:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
     ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-volumes:
-  postgres_data:
+      - "127.0.0.1:8000:8000"

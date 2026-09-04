@@ -22,7 +22,6 @@ from app.api.router import router
 from app.config import AppEnvironment, Settings, get_settings
 from app.domain.errors import AppError
 from app.infrastructure.auth import create_principal_resolver
-from app.infrastructure.db import Database
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 BODY_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -33,13 +32,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        database = Database(active_settings.database_url)
-        application.state.database = database
         application.state.principal_resolver = create_principal_resolver(
             active_settings
         )
         yield
-        await database.close()
 
     application = FastAPI(
         title="Gradus API",

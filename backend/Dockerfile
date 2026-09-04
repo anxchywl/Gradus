@@ -14,7 +14,6 @@ COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY backend/app ./app
-COPY backend/alembic.ini ./alembic.ini
 RUN uv sync --frozen --no-dev
 
 RUN addgroup --system gradus && adduser --system --ingroup gradus gradus

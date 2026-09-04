@@ -6,7 +6,6 @@ from app.config import AppEnvironment, AuthAdapter, Settings
 
 BASE_ENV = {
     "APP_ENV": AppEnvironment.test,
-    "DATABASE_URL": "postgresql+asyncpg://gradus:gradus@localhost:5432/gradus",
 }
 
 
