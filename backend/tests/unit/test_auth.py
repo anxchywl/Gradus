@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
+import jwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from app.config import Settings
 from app.domain.errors import UnauthorizedError
 from app.infrastructure.auth import create_principal_resolver
 from app.infrastructure.auth.resolvers import (
     DevelopmentPrincipalResolver,
+    SuperappPrincipalResolver,
     UnavailableHostPrincipalResolver,
 )
-from tests.conftest import settings
+from tests.conftest import (
+    SUPERAPP_AUDIENCE,
+    SUPERAPP_ISSUER,
+    public_pem,
+    settings,
+)
 
 
 async def test_host_resolver_rejects_every_token() -> None:
@@ -47,3 +57,172 @@ async def test_development_resolver_rejects_an_empty_token(
     resolver = create_principal_resolver(development_settings)
     with pytest.raises(UnauthorizedError):
         await resolver.resolve("")
+
+
+def _token(
+    key: rsa.RSAPrivateKey,
+    *,
+    issuer: str | None = SUPERAPP_ISSUER,
+    audience: str | None = SUPERAPP_AUDIENCE,
+    expires_in: int | None = 300,
+    subject: object = "student-42",
+    extra: dict[str, object] | None = None,
+) -> str:
+    claims: dict[str, object] = {}
+    if subject is not None:
+        claims["sub"] = subject
+    if issuer is not None:
+        claims["iss"] = issuer
+    if audience is not None:
+        claims["aud"] = audience
+    if expires_in is not None:
+        claims["exp"] = datetime.now(UTC) + timedelta(seconds=expires_in)
+    claims.update(extra or {})
+    return jwt.encode(claims, key, algorithm="RS256")
+
+
+async def test_superapp_resolver_accepts_a_token_the_issuer_signed(
+    superapp_settings: Settings,
+    superapp_signing_key: rsa.RSAPrivateKey,
+) -> None:
+    resolver = create_principal_resolver(superapp_settings)
+    assert isinstance(resolver, SuperappPrincipalResolver)
+
+    identity = await resolver.resolve(_token(superapp_signing_key))
+
+    assert identity.external_subject == "student-42"
+    assert identity.external_issuer == SUPERAPP_ISSUER
+    assert identity.is_operator is False
+
+
+async def test_superapp_resolver_rejects_a_foreign_signature(
+    superapp_settings: Settings,
+    superapp_foreign_key: rsa.RSAPrivateKey,
+) -> None:
+    resolver = create_principal_resolver(superapp_settings)
+    with pytest.raises(UnauthorizedError):
+        await resolver.resolve(_token(superapp_foreign_key))
+
+
+async def test_superapp_resolver_rejects_an_unsigned_token(
+    superapp_settings: Settings,
+) -> None:
+    # the alg=none forgery: a token with no signature at all
+    forged = jwt.encode(
+        {
+            "sub": "student-42",
+            "iss": SUPERAPP_ISSUER,
+            "aud": SUPERAPP_AUDIENCE,
+            "exp": datetime.now(UTC) + timedelta(seconds=300),
+        },
+        key="",
+        algorithm="none",
+    )
+    resolver = create_principal_resolver(superapp_settings)
+    with pytest.raises(UnauthorizedError):
+        await resolver.resolve(forged)
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        pytest.param({"issuer": "https://someone-else.example"}, id="wrong issuer"),
+        pytest.param({"issuer": None}, id="no issuer"),
+        pytest.param({"audience": "another-service"}, id="wrong audience"),
+        pytest.param({"audience": None}, id="no audience"),
+        pytest.param({"expires_in": None}, id="no expiry"),
+        pytest.param({"expires_in": -30}, id="expired"),
+        pytest.param({"subject": None}, id="no subject"),
+        pytest.param({"subject": "   "}, id="blank subject"),
+        pytest.param({"subject": "s" * 256}, id="oversized subject"),
+    ],
+)
+async def test_superapp_resolver_rejects_a_token_it_cannot_trust(
+    superapp_settings: Settings,
+    superapp_signing_key: rsa.RSAPrivateKey,
+    claims: dict[str, object],
+) -> None:
+    resolver = create_principal_resolver(superapp_settings)
+    with pytest.raises(UnauthorizedError):
+        await resolver.resolve(_token(superapp_signing_key, **claims))
+
+
+async def test_superapp_resolver_rejects_an_empty_token(
+    superapp_settings: Settings,
+) -> None:
+    resolver = create_principal_resolver(superapp_settings)
+    with pytest.raises(UnauthorizedError):
+        await resolver.resolve("")
+
+
+async def test_a_token_cannot_claim_operator_status(
+    superapp_settings: Settings,
+    superapp_signing_key: rsa.RSAPrivateKey,
+) -> None:
+    # no operator claim is configured, so nothing in the token can grant it
+    resolver = create_principal_resolver(superapp_settings)
+
+    identity = await resolver.resolve(
+        _token(
+            superapp_signing_key,
+            extra={"role": "operator", "is_operator": True, "operator": True},
+        )
+    )
+
+    assert identity.is_operator is False
+
+
+async def test_operator_status_comes_from_the_configured_claim(
+    superapp_signing_key: rsa.RSAPrivateKey,
+) -> None:
+    configured = settings(
+        SUPERAPP_JWT_ISSUER=SUPERAPP_ISSUER,
+        SUPERAPP_JWT_AUDIENCE=SUPERAPP_AUDIENCE,
+        SUPERAPP_JWT_PUBLIC_KEY=public_pem(superapp_signing_key),
+        SUPERAPP_OPERATOR_CLAIM="role",
+        SUPERAPP_OPERATOR_VALUE="gradus-operator",
+    )
+    resolver = create_principal_resolver(configured)
+
+    operator = await resolver.resolve(
+        _token(superapp_signing_key, extra={"role": "gradus-operator"})
+    )
+    student = await resolver.resolve(
+        _token(superapp_signing_key, extra={"role": "gradus-operatorr"})
+    )
+    unstated = await resolver.resolve(_token(superapp_signing_key))
+
+    assert operator.is_operator is True
+    assert student.is_operator is False
+    assert unstated.is_operator is False
+
+
+async def test_superapp_resolver_verifies_a_shared_secret_token(
+    superapp_signing_key: rsa.RSAPrivateKey,
+) -> None:
+    secret = "a" * 32
+    configured = settings(
+        SUPERAPP_JWT_ISSUER=SUPERAPP_ISSUER,
+        SUPERAPP_JWT_ALGORITHM="HS256",
+        SUPERAPP_JWT_SECRET=secret,
+    )
+    resolver = create_principal_resolver(configured)
+    token = jwt.encode(
+        {
+            "sub": "student-7",
+            "iss": SUPERAPP_ISSUER,
+            "exp": datetime.now(UTC) + timedelta(seconds=300),
+        },
+        secret,
+        algorithm="HS256",
+    )
+
+    identity = await resolver.resolve(token)
+
+    assert identity.external_subject == "student-7"
+
+
+async def test_an_unconfigured_host_stays_closed_rather_than_open() -> None:
+    # no issuer and no key must not degrade into accepting anything
+    resolver = create_principal_resolver(settings(SUPERAPP_JWT_ISSUER=SUPERAPP_ISSUER))
+    assert isinstance(resolver, UnavailableHostPrincipalResolver)
