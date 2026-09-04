@@ -9,9 +9,7 @@ from tests.conftest import settings
 
 def test_environment_defaults_to_production() -> None:
     # an omitted APP_ENV must fail closed, never open a development path
-    built = Settings.model_validate(
-        {"DATABASE_URL": "postgresql+asyncpg://gradus:gradus@localhost:5432/gradus"}
-    )
+    built = Settings.model_validate({})
     assert built.environment is AppEnvironment.production
 
 
@@ -86,3 +84,59 @@ def test_page_size_bounds_are_consistent() -> None:
 def test_request_body_limit_is_bounded() -> None:
     with pytest.raises(PydanticValidationError):
         settings(REQUEST_BODY_MAX_BYTES=1)
+
+
+def test_superapp_auth_needs_both_an_issuer_and_a_key() -> None:
+    # half a configuration must leave the host resolver closed, not open
+    issuer_only = settings(SUPERAPP_JWT_ISSUER="https://superapp.example.edu")
+    key_only = settings(SUPERAPP_JWT_SECRET="s" * 32)
+
+    assert issuer_only.superapp_auth_configured is False
+    assert key_only.superapp_auth_configured is False
+
+
+def test_an_unlisted_signing_algorithm_is_refused() -> None:
+    for algorithm in ("none", "NONE", "PS256"):
+        with pytest.raises(PydanticValidationError, match="not an allowed algorithm"):
+            settings(
+                SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
+                SUPERAPP_JWT_ALGORITHM=algorithm,
+                SUPERAPP_JWT_SECRET="s" * 32,
+            )
+
+
+def test_a_public_key_cannot_be_used_as_an_hmac_secret() -> None:
+    with pytest.raises(PydanticValidationError, match="cannot be used with an HS"):
+        settings(
+            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
+            SUPERAPP_JWT_ALGORITHM="HS256",
+            SUPERAPP_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----",
+        )
+
+
+def test_a_short_shared_secret_is_refused() -> None:
+    with pytest.raises(PydanticValidationError, match="at least 32 bytes"):
+        settings(
+            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
+            SUPERAPP_JWT_ALGORITHM="HS256",
+            SUPERAPP_JWT_SECRET="too-short",
+        )
+
+
+def test_an_asymmetric_algorithm_requires_a_public_key() -> None:
+    with pytest.raises(PydanticValidationError, match="PUBLIC_KEY is required"):
+        settings(
+            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
+            SUPERAPP_JWT_ALGORITHM="RS256",
+            SUPERAPP_JWT_SECRET="s" * 32,
+        )
+
+
+def test_an_operator_claim_and_its_value_are_set_together() -> None:
+    with pytest.raises(PydanticValidationError, match="together or not at all"):
+        settings(
+            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
+            SUPERAPP_JWT_ALGORITHM="HS256",
+            SUPERAPP_JWT_SECRET="s" * 32,
+            SUPERAPP_OPERATOR_CLAIM="role",
+        )
