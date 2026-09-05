@@ -22,6 +22,7 @@ from app.api.router import router
 from app.config import AppEnvironment, Settings, get_settings
 from app.domain.errors import AppError
 from app.infrastructure.auth import create_principal_resolver
+from app.infrastructure.syllabus import create_syllabus_service
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 BODY_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -35,7 +36,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         application.state.principal_resolver = create_principal_resolver(
             active_settings
         )
+        service, aclose = create_syllabus_service(active_settings)
+        application.state.syllabus_service = service
         yield
+        if aclose is not None:
+            await aclose()
 
     application = FastAPI(
         title="Gradus API",
@@ -74,7 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request.state.request_id = request_id
 
         if request.method in BODY_METHODS:
-            limit = active_settings.request_body_max_bytes
+            limit = active_settings.body_limit_for(request.url.path)
             content_length = request.headers.get("Content-Length")
             if (
                 content_length is not None
