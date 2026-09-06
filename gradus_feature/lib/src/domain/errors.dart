@@ -26,3 +26,21 @@ class UnknownGradeFailure extends GradusFailure {
 
   final String letter;
 }
+
+// the student is told which of these happened, so a refusal is never silent
+enum SyllabusImportProblem {
+  notAPdf,
+  tooLarge,
+  encrypted,
+  noText,
+  nothingFound,
+  rateLimited,
+  unavailable,
+  network,
+}
+
+class SyllabusImportFailure extends GradusFailure {
+  const SyllabusImportFailure(this.problem) : super('syllabus_import_failed');
+
+  final SyllabusImportProblem problem;
+}
