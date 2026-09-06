@@ -5,17 +5,32 @@ import '../data/in_memory_transcript_repository.dart';
 import '../data/preferences_transcript_repository.dart';
 import '../domain/grade.dart';
 import '../domain/repositories.dart';
+import '../data/http_syllabus_importer.dart';
 import 'gradus_session.dart';
 
 class GradusDependencies {
-  const GradusDependencies({required this.transcript, required this.scales});
+  const GradusDependencies({
+    required this.transcript,
+    required this.scales,
+    this.syllabus,
+  });
 
   final TranscriptRepository transcript;
   final GradeScaleRepository scales;
+  final SyllabusImporter? syllabus;
 
-  GradusController createController() =>
-      GradusController(transcript: transcript, scales: scales);
+  GradusController createController() => GradusController(
+    transcript: transcript,
+    scales: scales,
+    syllabus: syllabus,
+  );
 }
+
+// the token never reaches disk, so the importer is rebuilt with the session
+SyllabusImporter createSyllabusImporter({
+  required Uri baseUri,
+  required String accessToken,
+}) => HttpSyllabusImporter(baseUri: baseUri, accessToken: accessToken);
 
 GradusDependencies createSampleDependencies() => GradusDependencies(
   transcript: InMemoryTranscriptRepository(),

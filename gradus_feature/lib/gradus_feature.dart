@@ -13,7 +13,8 @@ export 'src/config/gradus_scope.dart'
         GradusDependencies,
         GradusScope,
         createLocalDependencies,
-        createSampleDependencies;
+        createSampleDependencies,
+        createSyllabusImporter;
 export 'src/config/gradus_session.dart'
     show GradusBackend, GradusConfig, GradusSession;
 export 'src/domain/assignment.dart' show Assignment;
@@ -24,7 +25,9 @@ export 'src/domain/errors.dart';
 export 'src/domain/gpa.dart' show GpaResult, calculateGpa;
 export 'src/domain/grade.dart'
     show FourPointScale, Grade, GradeBand, GradeScale;
+export 'src/domain/repositories.dart' show SyllabusImporter;
 export 'src/domain/semester.dart' show Semester;
+export 'src/domain/syllabus.dart' show SyllabusAssessment, SyllabusDraft;
 export 'src/domain/transcript.dart' show Transcript;
 export 'src/l10n/gradus_strings.dart'
     show GradusStrings, supportedGradusLocales;

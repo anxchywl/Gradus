@@ -7,17 +7,23 @@ import '../domain/gpa.dart';
 import '../domain/grade.dart';
 import '../domain/repositories.dart';
 import '../domain/semester.dart';
+import '../domain/syllabus.dart';
 import '../domain/transcript.dart';
 
 class GradusController extends ChangeNotifier {
   GradusController({
     required TranscriptRepository transcript,
     required GradeScaleRepository scales,
+    SyllabusImporter? syllabus,
   }) : _repository = transcript,
-       _scales = scales;
+       _scales = scales,
+       _syllabus = syllabus;
 
   final TranscriptRepository _repository;
   final GradeScaleRepository _scales;
+
+  // absent when the host mounted the feature without a backend to read one
+  final SyllabusImporter? _syllabus;
 
   // a load refuses to write its result if this moved under it
   int _generation = 0;
@@ -65,6 +71,14 @@ class GradusController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   Object? get failure => _failure;
 
+  bool get canImportSyllabus => _syllabus != null;
+
+  Future<SyllabusDraft?> importSyllabus() {
+    final importer = _syllabus;
+    if (importer == null) return Future<SyllabusDraft?>.value();
+    return importer.importFromFile();
+  }
+
   Course? courseById(String id) {
     for (final course in _transcript.courses) {
       if (course.id == id) return course;
@@ -74,6 +88,13 @@ class GradusController extends ChangeNotifier {
 
   List<Course> coursesIn(String semesterId) =>
       List.unmodifiable(_transcript.coursesIn(semesterId));
+
+  // the all-semesters view reports each term, not only the selected one
+  GpaResult resultFor(String semesterId) {
+    final scale = _scale;
+    if (scale == null) return GpaResult.empty;
+    return calculateGpa(_transcript.coursesIn(semesterId), scale);
+  }
 
   bool canRemoveSemester(String id) => _transcript.coursesIn(id).isEmpty;
 
