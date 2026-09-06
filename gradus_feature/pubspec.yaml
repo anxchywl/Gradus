@@ -17,6 +17,8 @@ dependencies:
     sdk: flutter
   intl: any
   shared_preferences: ^2.3.0
+  http: ^1.2.0
+  file_picker: ^8.1.0
   app_ui:
     path: ../app_ui
 
