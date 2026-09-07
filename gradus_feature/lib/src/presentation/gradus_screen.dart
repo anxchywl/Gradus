@@ -15,10 +15,6 @@ import 'gradus_responsive.dart';
 import 'gradus_widgets.dart';
 import 'semester_form.dart';
 
-enum _SemesterAction { add, rename, delete }
-
-enum _CourseAction { edit, delete }
-
 class GradusScreen extends StatefulWidget {
   const GradusScreen({super.key});
 
@@ -46,7 +42,14 @@ class _GpaScreenState extends State<GradusScreen> {
       isScrollControlled: true,
       // mounted on the host overlay, so the delegate is installed again
       builder: (_) => GradusStringsScope(
-        child: SemesterForm(nextPosition: highest + 1, existing: existing),
+        child: SemesterForm(
+          nextPosition: highest + 1,
+          existing: existing,
+          // a term holding courses cannot go, and the sheet says why
+          canDelete:
+              existing != null && controller.canRemoveSemester(existing.id),
+          onDelete: existing == null ? null : () => _deleteSemester(existing),
+        ),
       ),
     );
     if (semester == null) return;
@@ -60,7 +63,7 @@ class _GpaScreenState extends State<GradusScreen> {
     final strings = GradusStrings.of(context);
     final confirmed = await confirmDestructiveAction(
       context,
-      message: strings.deleteSemesterConfirm(formatSemester(strings, semester)),
+      message: strings.deleteSemesterConfirm,
     );
     if (!confirmed) return;
     await controller.removeSemester(semester.id);
@@ -82,6 +85,9 @@ class _GpaScreenState extends State<GradusScreen> {
           initialSemesterId:
               controller.selectedSemesterId ?? semesters.first.id,
           existing: existing,
+          onImportSyllabus: controller.canImportSyllabus
+              ? controller.importSyllabus
+              : null,
         ),
       ),
     );
@@ -89,17 +95,6 @@ class _GpaScreenState extends State<GradusScreen> {
     await (existing == null
         ? controller.addCourse(course)
         : controller.updateCourse(course));
-  }
-
-  Future<void> _deleteCourse(Course course) async {
-    final controller = GradusScope.of(context).controller;
-    final strings = GradusStrings.of(context);
-    final confirmed = await confirmDestructiveAction(
-      context,
-      message: strings.deleteCourseConfirm(course.title),
-    );
-    if (!confirmed) return;
-    await controller.removeCourse(course.id);
   }
 
   void _openCourse(Course course) {
@@ -118,154 +113,100 @@ class _GpaScreenState extends State<GradusScreen> {
     );
   }
 
-  void _onSemesterAction(_SemesterAction action, Semester? selected) {
-    switch (action) {
-      case _SemesterAction.add:
-        _openSemesterForm();
-      case _SemesterAction.rename:
-        if (selected != null) _openSemesterForm(existing: selected);
-      case _SemesterAction.delete:
-        if (selected != null) _deleteSemester(selected);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
     final controller = GradusScope.of(context).controller;
 
     return Scaffold(
-      appBar: AppAppBar(
-        title: strings.featureTitle,
-        centerTitle: false,
-        actions: [
-          AnimatedBuilder(
-            animation: controller,
-            builder: (context, _) => _SemesterMenu(
-              controller: controller,
-              onSelected: _onSemesterAction,
-            ),
-          ),
-        ],
-      ),
       body: AnimatedBuilder(
         animation: controller,
-        builder: (context, _) {
-          if (controller.isLoading) {
-            return const Center(child: AppLoader());
-          }
-          if (controller.failure != null && controller.allCourses.isEmpty) {
-            return GradusEmptyState(
-              icon: AppIcons.warning,
-              tone: GradusTone.warning,
-              title: strings.loadFailed,
-              message: strings.loadFailedBody,
-              actionLabel: strings.retry,
-              onAction: controller.load,
-            );
-          }
-          if (controller.semesters.isEmpty) {
-            return GradusEmptyState(
-              icon: AppIcons.calendar,
-              title: strings.noSemesters,
-              message: strings.noSemestersBody,
-              actionLabel: strings.addSemester,
-              onAction: _openSemesterForm,
-            );
-          }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _SemesterBar(controller: controller),
-              Expanded(
-                child: controller.entries.isEmpty
-                    ? _EmptySemester(
-                        controller: controller,
-                        onAddCourse: _openCourseForm,
-                      )
-                    : _Body(
-                        controller: controller,
-                        onOpen: _openCourse,
-                        onEdit: (course) => _openCourseForm(existing: course),
-                        onDelete: _deleteCourse,
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) =>
-            controller.semesters.isEmpty || controller.entries.isEmpty
-            ? const SizedBox.shrink()
-            : FloatingActionButton.extended(
-                onPressed: _openCourseForm,
-                // the brand colour reads in both themes
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-                icon: const AppIcon(AppIcons.add, color: AppColors.white),
-                label: Text(strings.addCourse),
-              ),
+        builder: (context, _) => CustomScrollView(
+          slivers: [
+            // the header gives the list its room back on the way down
+            AppSliverAppBar(title: strings.featureTitle),
+            ..._content(context, controller, strings),
+          ],
+        ),
       ),
     );
   }
-}
 
-// a reason a control is unavailable belongs beside it, not always on screen
-class _SemesterMenu extends StatelessWidget {
-  const _SemesterMenu({required this.controller, required this.onSelected});
+  List<Widget> _content(
+    BuildContext context,
+    GradusController controller,
+    GradusStrings strings,
+  ) {
+    Widget fills(Widget child) =>
+        SliverFillRemaining(hasScrollBody: false, child: child);
 
-  final GradusController controller;
-  final void Function(_SemesterAction, Semester?) onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = GradusStrings.of(context);
-    final selected = controller.selectedSemester;
-    final canDelete =
-        selected != null && controller.canRemoveSemester(selected.id);
-
-    return Semantics(
-      container: true,
-      button: true,
-      label: strings.semesterActions,
-      child: AppMenu<_SemesterAction>(
-        tooltip: strings.semesterActions,
-        iconColor: gradusPrimaryText(context),
-        onSelected: (action) => onSelected(action, selected),
-        items: [
-          AppMenuItem(
-            value: _SemesterAction.add,
-            label: strings.addSemester,
-            icon: AppIcons.add,
+    if (controller.isLoading) {
+      return [fills(const Center(child: AppLoader()))];
+    }
+    if (controller.failure != null && controller.allCourses.isEmpty) {
+      return [
+        fills(
+          GradusEmptyState(
+            icon: AppIcons.warning,
+            tone: GradusTone.warning,
+            title: strings.loadFailed,
+            message: strings.loadFailedBody,
+            actionLabel: strings.retry,
+            onAction: controller.load,
           ),
-          if (selected != null) ...[
-            AppMenuItem(
-              value: _SemesterAction.rename,
-              label: strings.editSemester,
-              icon: AppIcons.edit,
-            ),
-            AppMenuItem(
-              value: _SemesterAction.delete,
-              label: strings.deleteSemester(formatSemester(strings, selected)),
-              icon: AppIcons.delete,
-              enabled: canDelete,
-              isDestructive: true,
-              description: canDelete ? null : strings.deleteSemesterBlocked,
-            ),
-          ],
-        ],
+        ),
+      ];
+    }
+    if (controller.semesters.isEmpty) {
+      return [
+        fills(
+          GradusEmptyState(
+            icon: AppIcons.calendar,
+            title: strings.noSemesters,
+            message: strings.noSemestersBody,
+            actionLabel: strings.addSemester,
+            onAction: _openSemesterForm,
+          ),
+        ),
+      ];
+    }
+
+    return [
+      SliverToBoxAdapter(
+        child: _SemesterBar(
+          controller: controller,
+          onAddSemester: _openSemesterForm,
+          onEditSemester: (semester) => _openSemesterForm(existing: semester),
+        ),
       ),
-    );
+      if (controller.entries.isEmpty)
+        fills(
+          _EmptySemester(controller: controller, onAddCourse: _openCourseForm),
+        )
+      else ...[
+        SliverToBoxAdapter(
+          child: _Body(
+            controller: controller,
+            onOpen: _openCourse,
+            onAdd: _openCourseForm,
+          ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+      ],
+    ];
   }
 }
 
 class _SemesterBar extends StatelessWidget {
-  const _SemesterBar({required this.controller});
+  const _SemesterBar({
+    required this.controller,
+    required this.onAddSemester,
+    required this.onEditSemester,
+  });
 
   final GradusController controller;
+  final VoidCallback onAddSemester;
+  final void Function(Semester) onEditSemester;
 
   @override
   Widget build(BuildContext context) {
@@ -274,23 +215,26 @@ class _SemesterBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+        Padding(
           padding: AppSpacing.screenHorizontal,
-          child: Row(
-            children: [
-              _SemesterChip(
-                label: strings.allSemesters,
-                isSelected: controller.isAllSemestersSelected,
-                onTap: () => controller.selectSemester(null),
-              ),
-              for (final semester in controller.semesters)
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
                 _SemesterChip(
-                  label: formatSemester(strings, semester),
-                  isSelected: semester.id == controller.selectedSemesterId,
-                  onTap: () => controller.selectSemester(semester.id),
+                  label: strings.allSemesters,
+                  isSelected: controller.isAllSemestersSelected,
+                  onTap: () => controller.selectSemester(null),
                 ),
-            ],
+                for (final semester in controller.semesters)
+                  _SemesterChip(
+                    label: formatSemester(strings, semester),
+                    isSelected: semester.id == controller.selectedSemesterId,
+                    onTap: () => controller.selectSemester(semester.id),
+                  ),
+                _AddSemesterChip(onTap: onAddSemester),
+              ],
+            ),
           ),
         ),
         Padding(
@@ -301,12 +245,47 @@ class _SemesterBar extends StatelessWidget {
               child: ConstrainedBox(
                 // full width would put the label and the figure far apart
                 constraints: const BoxConstraints(maxWidth: gradusReadingWidth),
-                child: _SummaryCard(controller: controller),
+                child: _SummaryCard(
+                  controller: controller,
+                  onEditSemester: onEditSemester,
+                ),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AddSemesterChip extends StatelessWidget {
+  const _AddSemesterChip({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = GradusStrings.of(context);
+    return Semantics(
+      container: true,
+      button: true,
+      label: strings.addSemester,
+      child: Tooltip(
+        message: strings.addSemester,
+        child: AppCard(
+          onTap: onTap,
+          height: AppSpacing.buttonHeightSm,
+          padding: AppSpacing.buttonPaddingCompact,
+          borderRadius: AppSpacing.borderRadiusRound,
+          child: const Center(
+            child: AppIcon(
+              AppIcons.add,
+              size: AppSpacing.iconSm,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -349,22 +328,27 @@ class _SemesterChip extends StatelessWidget {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.controller});
+  const _SummaryCard({required this.controller, required this.onEditSemester});
 
   final GradusController controller;
+  final void Function(Semester) onEditSemester;
 
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
     final result = controller.result;
-    final showSemester = !controller.isAllSemestersSelected;
+    final selected = controller.selectedSemester;
+    final showSemester = !controller.isAllSemestersSelected && selected != null;
 
     return AppCard(
+      // the card is the semester, so tapping it opens the semester
+      onTap: showSemester ? () => onEditSemester(selected) : null,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             showSemester ? strings.semesterGpa : strings.cumulativeGpa,
+            textAlign: TextAlign.center,
             style: AppTextStyles.labelMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -374,6 +358,7 @@ class _SummaryCard extends StatelessWidget {
           if (result.isDefined)
             Text(
               formatGpa(strings, result.value),
+              textAlign: TextAlign.center,
               style: AppTextStyles.displaySmall.copyWith(
                 color: gradusPrimaryText(context),
               ),
@@ -383,38 +368,20 @@ class _SummaryCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: Text(
                 strings.gpaUndefined,
+                textAlign: TextAlign.center,
                 style: AppTextStyles.titleMedium.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
             ),
-          AppSpacing.verticalDf,
-          const Divider(height: AppSpacing.dividerDf, color: AppColors.divider),
-          AppSpacing.verticalDf,
-          Row(
-            children: [
-              if (showSemester)
-                Expanded(
-                  child: GradusStatTile(
-                    label: strings.cumulativeGpa,
-                    value: formatGpa(
-                      strings,
-                      controller.cumulativeResult.value,
-                    ),
-                  ),
-                ),
-              Expanded(
-                flex: showSemester ? 1 : 2,
-                child: GradusStatTile(
-                  // a label and a figure, not a sentence dressed as a figure
-                  label: strings.creditsCountedLabel,
-                  value: strings.creditsRatio(
-                    result.qualityCredits,
-                    result.attemptedCredits,
-                  ),
-                ),
-              ),
-            ],
+          AppSpacing.verticalXs,
+          // what the average was earned over, under the average itself
+          Text(
+            strings.creditsEarnedCount(result.attemptedCredits),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -445,14 +412,12 @@ class _Body extends StatelessWidget {
   const _Body({
     required this.controller,
     required this.onOpen,
-    required this.onEdit,
-    required this.onDelete,
+    required this.onAdd,
   });
 
   final GradusController controller;
   final void Function(Course) onOpen;
-  final void Function(Course) onEdit;
-  final void Function(Course) onDelete;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -463,8 +428,6 @@ class _Body extends StatelessWidget {
       course: course,
       resolved: calculateCourseGrade(course, scale),
       onOpen: () => onOpen(course),
-      onEdit: () => onEdit(course),
-      onDelete: () => onDelete(course),
     );
 
     final children = <Widget>[];
@@ -476,11 +439,15 @@ class _Body extends StatelessWidget {
           ..add(
             Padding(
               padding: const EdgeInsets.only(
-                top: AppSpacing.sm,
+                top: AppSpacing.lg,
                 bottom: AppSpacing.md,
               ),
-              child: GradusSectionHeader(
+              child: _SemesterHeading(
                 title: formatSemester(strings, semester),
+                totals: formatSemesterTotals(
+                  strings,
+                  controller.resultFor(semester.id),
+                ),
               ),
             ),
           )
@@ -499,19 +466,18 @@ class _Body extends StatelessWidget {
         ),
       );
     }
+    children
+      ..add(AppSpacing.verticalMd)
+      ..add(GradusAddRow(label: strings.addCourse, onTap: onAdd));
 
-    return ListView(
+    return Padding(
       padding: AppSpacing.screenHorizontal,
-      children: [
-        CenteredContent(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
-          ),
+      child: CenteredContent(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
         ),
-        // the button floats over the list, so the last row stays reachable
-        const SizedBox(height: AppSpacing.xxxxl + AppSpacing.xl),
-      ],
+      ),
     );
   }
 }
@@ -521,15 +487,11 @@ class _CourseCard extends StatelessWidget {
     required this.course,
     required this.resolved,
     required this.onOpen,
-    required this.onEdit,
-    required this.onDelete,
   });
 
   final Course course;
   final CourseGrade resolved;
   final VoidCallback onOpen;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -537,140 +499,81 @@ class _CourseCard extends StatelessWidget {
 
     return AppCard(
       onTap: onOpen,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        // the name sits level with the letter it belongs to
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GradusGradeBadge(
-                letter: formatLetter(strings, resolved),
-                countsTowardGpa: resolved.weighsOnGpa,
-              ),
-              AppSpacing.horizontalMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (course.code.isNotEmpty) ...[
-                      Text(
-                        course.code,
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      AppSpacing.verticalXs,
-                    ],
-                    Text(
-                      course.title,
-                      // one course cannot push the list off screen
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.titleMedium.copyWith(
-                        color: gradusPrimaryText(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _CourseMenu(course: course, onEdit: onEdit, onDelete: onDelete),
-            ],
+          GradusGradeBadge(
+            letter: formatLetter(strings, resolved),
+            countsTowardGpa: resolved.weighsOnGpa,
           ),
-          AppSpacing.verticalSm,
+          AppSpacing.horizontalMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  course.title,
+                  // one course cannot push the list off screen
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: gradusPrimaryText(context),
+                  ),
+                ),
+                if (course.code.isNotEmpty) ...[
+                  AppSpacing.verticalXs,
+                  Text(
+                    course.code,
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          AppSpacing.horizontalMd,
+          // what the letter is worth, opposite the letter itself
           Text(
-            formatCourseMeta(strings, course.credits, resolved),
-            style: AppTextStyles.bodySmall.copyWith(
+            strings.creditsCount(course.credits),
+            style: AppTextStyles.labelSmall.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          if (resolved.assignmentCount > 0) ...[
-            AppSpacing.verticalMd,
-            AppProgressBar(
-              progress: resolved.gradedWeight / 100,
-              height: AppSpacing.xs,
-            ),
-            AppSpacing.verticalSm,
-            Text(
-              formatAssignmentProgress(strings, resolved),
-              style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-          if (_chips(strings).isNotEmpty) ...[
-            AppSpacing.verticalMd,
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: _chips(strings),
-            ),
-          ],
         ],
       ),
     );
   }
-
-  List<Widget> _chips(GradusStrings strings) => [
-    // without this a muted badge is the same as a course with no marks at all
-    if (resolved.isAttempted && !resolved.weighsOnGpa)
-      GradusStatusChip(
-        label: course.gradingMode == GradingMode.passFail
-            ? strings.gradingModePassFail
-            : strings.passFailNote,
-        icon: AppIcons.checkCircle,
-        tone: GradusTone.info,
-      ),
-    if (!course.includeInGpa)
-      GradusStatusChip(label: strings.excludedFromGpa, icon: AppIcons.info),
-    if (resolved.assignmentCount > 0 && !resolved.isSetupComplete)
-      GradusStatusChip(
-        label: strings.setupIncomplete(resolved.unallocatedWeight),
-        icon: AppIcons.warning,
-        tone: GradusTone.warning,
-      ),
-  ];
 }
 
-// two icon buttons put a destructive action one mis-tap from a scroll
-class _CourseMenu extends StatelessWidget {
-  const _CourseMenu({
-    required this.course,
-    required this.onEdit,
-    required this.onDelete,
-  });
+// a term header carries that term's own figures, so the summary card is not
+// the only place a total appears
+class _SemesterHeading extends StatelessWidget {
+  const _SemesterHeading({required this.title, required this.totals});
 
-  final Course course;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final String title;
+  final String totals;
 
   @override
-  Widget build(BuildContext context) {
-    final strings = GradusStrings.of(context);
-    return Semantics(
-      container: true,
-      button: true,
-      label: strings.courseActions(course.title),
-      child: AppMenu<_CourseAction>(
-        tooltip: strings.courseActions(course.title),
-        iconColor: AppColors.textSecondary,
-        onSelected: (action) => switch (action) {
-          _CourseAction.edit => onEdit(),
-          _CourseAction.delete => onDelete(),
-        },
-        items: [
-          AppMenuItem(
-            value: _CourseAction.edit,
-            label: strings.editCourse,
-            icon: AppIcons.edit,
-          ),
-          AppMenuItem(
-            value: _CourseAction.delete,
-            label: strings.deleteCourse(course.title),
-            icon: AppIcons.delete,
-            isDestructive: true,
-          ),
-        ],
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        title,
+        textAlign: TextAlign.center,
+        style: AppTextStyles.sectionHeader.copyWith(
+          color: gradusPrimaryText(context),
+        ),
       ),
-    );
-  }
+      AppSpacing.verticalXs,
+      Text(
+        totals,
+        textAlign: TextAlign.center,
+        style: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.textSecondary,
+        ),
+      ),
+    ],
+  );
 }

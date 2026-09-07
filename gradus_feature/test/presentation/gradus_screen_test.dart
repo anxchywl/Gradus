@@ -72,7 +72,6 @@ Course _course(
   String semesterId = 'fall',
   String code = '',
   Grade? grade = const Grade(letter: 'A', qualityPoints: 4),
-  GradingMode gradingMode = GradingMode.graded,
   List<Assignment> assignments = const [],
 }) => Course(
   id: id,
@@ -81,7 +80,6 @@ Course _course(
   title: 'Course $id',
   credits: credits,
   grade: grade,
-  gradingMode: gradingMode,
   assignments: assignments,
 );
 
@@ -109,13 +107,13 @@ void _resizeTo(WidgetTester tester, Size size) {
     ..physicalSize = size;
 }
 
-Future<void> _openSemesterMenu(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Semester options'));
+Future<void> _openSemesterSheet(WidgetTester tester) async {
+  await tester.tap(find.widgetWithText(AppCard, 'Semester GPA'));
   await tester.pumpAndSettle();
 }
 
-Future<void> _openCourseMenu(WidgetTester tester, String title) async {
-  await tester.tap(find.byTooltip('Options for $title'));
+Future<void> _openCourse(WidgetTester tester, String title) async {
+  await tester.tap(find.text(title));
   await tester.pumpAndSettle();
 }
 
@@ -147,10 +145,36 @@ void main() {
       reason: 'an empty screen without a way forward is a dead end',
     );
     expect(
-      find.byType(FloatingActionButton),
+      find.widgetWithText(AppCard, 'Add course'),
       findsNothing,
       reason: 'a course has nowhere to go until a semester exists',
     );
+  });
+
+  testWidgets('the course list ends in the control that adds to it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        repository: _FakeTranscriptRepository(
+          transcript: _oneTerm([_course('1', 3)]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(AppCard, 'Add course'), findsOneWidget);
+    expect(
+      find.byType(FloatingActionButton),
+      findsNothing,
+      reason: 'a button floating over the list covered its last row',
+    );
+
+    await tester.tap(find.widgetWithText(AppCard, 'Add course'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add course'), findsWidgets);
+    expect(find.byType(TextFormField), findsWidgets);
   });
 
   testWidgets('an empty semester says so rather than showing nothing', (
@@ -341,6 +365,50 @@ void main() {
       expect(repository.transcript.semesters.single.name, 'Fall 2026');
     });
 
+    testWidgets('the plus beside the chooser adds another', (tester) async {
+      final repository = _FakeTranscriptRepository(
+        transcript: _oneTerm([_course('1', 3)]),
+      );
+      await tester.pumpWidget(_host(repository: repository));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Add semester'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), 'Spring 2027');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(repository.transcript.semesters.length, 2);
+      expect(find.text('Spring 2027'), findsWidgets);
+    });
+
+    testWidgets('only a term on screen can be opened', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // the all-semesters card stands for no one term, so it opens nothing
+      await tester.tap(find.text('All semesters'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(AppCard, 'Cumulative GPA'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit semester'), findsNothing);
+      expect(find.byTooltip('Add semester'), findsOneWidget);
+
+      // the section header repeats the name, the chip is the one in a card
+      await tester.tap(find.widgetWithText(AppCard, 'Fall 2026'));
+      await tester.pumpAndSettle();
+      await _openSemesterSheet(tester);
+
+      expect(find.text('Edit semester'), findsOneWidget);
+    });
+
     testWidgets('the form refuses a blank name', (tester) async {
       await tester.pumpWidget(_host(repository: _FakeTranscriptRepository()));
       await tester.pumpAndSettle();
@@ -370,20 +438,51 @@ void main() {
         reason: 'an explanation is not an error to show before anyone acts',
       );
 
-      await _openSemesterMenu(tester);
+      await _openSemesterSheet(tester);
 
       expect(find.text('Move or delete its courses first'), findsOneWidget);
 
-      await tester.tap(find.text('Delete Fall 2026'));
+      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('This cannot be undone'),
+        find.text('Delete this semester?'),
         findsNothing,
         reason: 'the control is closed, not merely explained afterwards',
       );
       expect(find.text('Fall 2026'), findsWidgets);
       expect(find.text('Course 1'), findsOneWidget);
+    });
+
+    testWidgets('each term heading carries that term\'s own figures', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          repository: _FakeTranscriptRepository(
+            transcript: Transcript(
+              semesters: [
+                _semester('fall', 'Fall 2026', position: 2),
+                _semester('spring', 'Spring 2026', position: 1),
+              ],
+              courses: [
+                _course('1', 3),
+                _course('2', 3, semesterId: 'spring'),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('All semesters'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('GPA 4.00  |  3 credits'),
+        findsNWidgets(2),
+        reason: 'a term is grouped under its own total, not only the card one',
+      );
     });
 
     testWidgets('switching hides the other semester\'s courses', (
@@ -452,9 +551,7 @@ void main() {
       expect(find.text('3.50'), findsWidgets);
     });
 
-    testWidgets('a semester and a cumulative figure are shown apart', (
-      tester,
-    ) async {
+    testWidgets('each view reports the one figure it is about', (tester) async {
       await tester.pumpWidget(
         _host(
           repository: _FakeTranscriptRepository(
@@ -478,9 +575,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // a term reports its own average, the cumulative belongs to all terms
       expect(find.text('Semester GPA'), findsOneWidget);
       expect(find.text('4.00'), findsWidgets);
+      expect(find.text('Cumulative GPA'), findsNothing);
+
+      await tester.tap(find.text('All semesters'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Cumulative GPA'), findsOneWidget);
+      expect(find.text('Semester GPA'), findsNothing);
       expect(find.text('3.50'), findsOneWidget);
     });
   });
@@ -504,7 +608,9 @@ void main() {
         'Linear Algebra',
       );
       await tester.enterText(find.byType(TextFormField).at(2), '3');
-      await tester.tap(find.byType(DropdownButtonFormField<Grade?>));
+      await tester.tap(
+        find.widgetWithText(GradusChooserField, 'Not graded yet'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('A').last);
       await tester.pumpAndSettle();
@@ -512,9 +618,57 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Linear Algebra'), findsOneWidget);
-      expect(find.text('MATH 273'), findsOneWidget);
+      // the code sits with the credits on the card's own detail line
+      expect(find.textContaining('MATH 273'), findsOneWidget);
       expect(find.text('4.00'), findsWidgets);
       expect(repository.transcript.courses, hasLength(1));
+    });
+
+    testWidgets('the grade chooser groups the scale by family', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openCourse(tester, 'Course 1');
+      await tester.tap(find.byTooltip('Edit course'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(GradusChooserField, 'A'));
+      await tester.pumpAndSettle();
+
+      // a row of its own for each family, with the singletons folded in
+      final rows = tester
+          .widgetList<Wrap>(find.byType(Wrap))
+          .where((wrap) => wrap.children.isNotEmpty)
+          .toList();
+
+      expect(rows, hasLength(5));
+      expect(rows[0].children, hasLength(2), reason: 'A and A-');
+      expect(rows[1].children, hasLength(3), reason: 'B+, B and B-');
+      expect(rows[3].children, hasLength(4), reason: 'D+, D, F and P');
+      expect(rows[4].children, hasLength(1), reason: 'Not graded yet');
+    });
+
+    testWidgets('the card carries no menu of its own', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // the course opens on a tap, so a second control on the row is clutter
+      expect(find.byTooltip('Options for Course 1'), findsNothing);
+
+      await _openCourse(tester, 'Course 1');
+
+      // the one icon-only control on the screen names what it acts on
+      expect(find.bySemanticsLabel('Edit course'), findsOneWidget);
     });
 
     testWidgets('the form refuses a blank title and bad credits', (
@@ -547,19 +701,20 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Course 1'), findsOneWidget);
 
-      await _openCourseMenu(tester, 'Course 1');
-      await tester.tap(find.text('Delete Course 1'));
+      await _openCourse(tester, 'Course 1');
+      await tester.tap(find.byTooltip('Edit course'));
       await tester.pumpAndSettle();
-      expect(
-        find.text(
-          'Delete Course 1 and its assignments? This cannot be undone.',
-        ),
-        findsOneWidget,
-      );
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete this course?'), findsOneWidget);
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Course 1'), findsNothing);
+      expect(
+        find.text('Course 1'),
+        findsNothing,
+        reason: 'the detail route goes away with the course it described',
+      );
       expect(repository.transcript.courses, isEmpty);
     });
 
@@ -570,13 +725,15 @@ void main() {
       await tester.pumpWidget(_host(repository: repository));
       await tester.pumpAndSettle();
 
-      await _openCourseMenu(tester, 'Course 1');
-      await tester.tap(find.text('Delete Course 1'));
+      await _openCourse(tester, 'Course 1');
+      await tester.tap(find.byTooltip('Edit course'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Course 1'), findsOneWidget);
+      expect(find.text('Course 1'), findsWidgets);
       expect(repository.transcript.courses, hasLength(1));
     });
 
@@ -591,7 +748,6 @@ void main() {
               _course(
                 '2',
                 3,
-                gradingMode: GradingMode.passFail,
                 grade: const Grade(
                   letter: 'P',
                   qualityPoints: 0,
@@ -604,11 +760,23 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Pass/fail'), findsOneWidget);
       expect(find.text('4.00'), findsWidgets);
-      expect(find.byType(GradusStatusChip), findsOneWidget);
-      expect(find.text('Credits counted'), findsOneWidget);
-      expect(find.text('3 of 6'), findsOneWidget);
+      // the row names the course, the course itself explains its grading
+      expect(
+        find.text('Counts as attempted credit, not toward the GPA.'),
+        findsNothing,
+      );
+      // the card reports the average and what it was earned over
+      // both courses are attempted, the P earns its credit without points
+      expect(find.text('6 credits earned'), findsOneWidget);
+      expect(find.text('Credits enrolled'), findsNothing);
+
+      await _openCourse(tester, 'Course 2');
+
+      expect(
+        find.text('Counts as attempted credit, not toward the GPA.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('an incomplete grading setup is called out on the row', (
@@ -632,12 +800,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // the row carries what names the course, not what it has earned
+      expect(find.text('Graded weight (60% unallocated)'), findsNothing);
+      // the summary card reports credits too, so the row's own line is scoped
       expect(
-        find.text('60% of this course\'s grading setup is unallocated.'),
+        find.descendant(
+          of: find.widgetWithText(AppCard, 'Course 1'),
+          matching: find.text('3 credits'),
+        ),
         findsOneWidget,
       );
-      expect(find.text('1 of 1 graded  ·  Graded weight 40%'), findsOneWidget);
-      expect(find.text('3 cr  ·  90.0%  ·  GPA 4.00'), findsOneWidget);
+
+      await _openCourse(tester, 'Course 1');
+
+      expect(find.text('Graded weight (60% unallocated)'), findsOneWidget);
+      expect(find.text('90.0%'), findsWidgets);
     });
 
     testWidgets('the delete control carries a semantics label', (tester) async {
@@ -652,12 +829,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.bySemanticsLabel('Options for Course 1'),
-        findsOneWidget,
-        reason: 'an icon-only control needs a label a screen reader can read',
-      );
-      expect(find.bySemanticsLabel('Semester options'), findsOneWidget);
+      // an icon-only control needs a label a screen reader can read
+      expect(find.bySemanticsLabel('Add semester'), findsOneWidget);
       semantics.dispose();
     });
   });
@@ -800,10 +973,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // the letter is muted on the row, and the course says why when opened
+    expect(find.text('P'), findsOneWidget);
     expect(
       find.text('Counts as attempted credit, not toward the GPA.'),
-      findsOneWidget,
-      reason: 'a muted badge alone reads as a course with no marks',
+      findsNothing,
     );
   });
 
@@ -821,8 +995,8 @@ void main() {
 
     expect(find.text('Not enough graded credits yet'), findsOneWidget);
 
-    // at display size a dash reads as a stray rule rather than an absent figure
-    final dashes = tester.widgetList<Text>(
+    // a dash is a figure a reader has to decode, the sentence above says it
+    expect(
       find.descendant(
         of: find.ancestor(
           of: find.text('Semester GPA'),
@@ -830,14 +1004,7 @@ void main() {
         ),
         matching: find.text('—'),
       ),
-    );
-    expect(dashes, isNotEmpty);
-    expect(
-      dashes.every(
-        (text) =>
-            (text.style?.fontSize ?? 0) < AppTextStyles.displaySmall.fontSize!,
-      ),
-      isTrue,
+      findsNothing,
     );
   });
 
