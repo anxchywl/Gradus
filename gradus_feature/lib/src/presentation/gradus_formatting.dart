@@ -1,4 +1,6 @@
+import '../domain/assignment.dart';
 import '../domain/course_grade.dart';
+import '../domain/gpa.dart';
 import '../domain/semester.dart';
 import '../l10n/gradus_strings.dart';
 
@@ -12,41 +14,29 @@ String formatGpa(GradusStrings strings, double? value) =>
 String formatLetter(GradusStrings strings, CourseGrade resolved) =>
     resolved.grade?.letter ?? strings.valueUnavailable;
 
-// a pass counts as credit without a number behind it
-String formatCourseGpa(GradusStrings strings, CourseGrade resolved) =>
-    resolved.weighsOnGpa
-    ? strings.gpaValue(resolved.grade!.qualityPoints)
-    : strings.gpaNone;
-
 // a term carried over from a store with no terms has no name to show
 String formatSemester(GradusStrings strings, Semester semester) =>
     semester.hasName ? semester.name : strings.unnamedSemester;
 
-// composites live here, so no screen holds a fragment the ARB files lack
-const String _separator = '  ·  ';
+// a term header carries the two figures the summary card would show for it
+String formatSemesterTotals(GradusStrings strings, GpaResult result) => [
+  if (result.isDefined) strings.gpaValue(result.value!),
+  strings.creditsCount(result.attemptedCredits),
+].join('  |  ');
 
-String formatCumulativeLine(GradusStrings strings, double? value) =>
-    '${strings.cumulativeGpa}  ${formatGpa(strings, value)}';
+// the mark beside the percentage, so a reader sees what produced it
+String formatAssignmentScore(GradusStrings strings, Assignment assignment) =>
+    assignment.isGraded
+    ? strings.scoreOutOf(assignment.earnedScore!, assignment.maximumScore)
+    : strings.valueUnavailable;
 
-// each part is labelled, so a row of dashes still says what is missing
-String formatCourseMeta(
-  GradusStrings strings,
-  double credits,
-  CourseGrade resolved,
-) => [
-  strings.creditsValue(credits),
-  formatPercentage(strings, resolved.currentPercentage),
-  formatCourseGpa(strings, resolved),
-].join(_separator);
+// a syllabus states weights, never a maximum score, so every imported entry
+// starts out of one hundred and unmarked
+const double importedMaximumScore = 100;
 
-String formatAssignmentProgress(GradusStrings strings, CourseGrade resolved) =>
-    '${strings.assignmentProgress(resolved.gradedCount, resolved.assignmentCount)}'
-    '$_separator${strings.gradedWeightLabel} '
-    '${strings.weightPercent(resolved.gradedWeight)}';
-
-String formatGradeSource(GradusStrings strings, CourseGrade resolved) =>
-    switch (resolved.source) {
-      GradeSource.assignments => strings.gradeFromAssignments,
-      GradeSource.manual => strings.gradeFromManual,
-      GradeSource.none => strings.gradeNotSet,
-    };
+// the credits field is typed into, so an imported value arrives as text the
+// student can correct, without a trailing zero they did not write
+String formatImportedCredits(double credits) =>
+    credits == credits.roundToDouble()
+    ? credits.toStringAsFixed(0)
+    : credits.toString();
