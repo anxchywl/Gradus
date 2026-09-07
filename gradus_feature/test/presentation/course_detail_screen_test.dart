@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gradus_feature/gradus_feature.dart';
 import 'package:gradus_feature/src/domain/repositories.dart';
 import 'package:gradus_feature/src/presentation/assignment_form.dart';
-import 'package:gradus_feature/src/presentation/gradus_widgets.dart';
 
 class _FakeTranscriptRepository implements TranscriptRepository {
   _FakeTranscriptRepository(this.transcript);
@@ -66,8 +65,6 @@ Assignment _assignment(
 
 Transcript _transcript({
   List<Assignment> assignments = const [],
-  GradingMode gradingMode = GradingMode.graded,
-  bool includeInGpa = true,
   Grade? grade,
 }) => Transcript(
   semesters: [Semester(id: 'fall', name: 'Fall 2026', position: 1)],
@@ -79,32 +76,27 @@ Transcript _transcript({
       title: 'Programming Languages',
       credits: 8,
       grade: grade,
-      gradingMode: gradingMode,
-      includeInGpa: includeInGpa,
       assignments: assignments,
     ),
   ],
 );
 
-// the empty list carries the action, once there are rows the button does
+// the action sits at the end of the list rather than floating over it, so it
+// is the last card on the screen in every locale
 Future<void> _tapAddAssignment(WidgetTester tester) async {
-  final inEmptyState = find.widgetWithText(AppPrimaryButton, 'Add assignment');
-  if (inEmptyState.evaluate().isEmpty) {
-    await tester.tap(find.byType(FloatingActionButton));
-  } else {
-    // the summary card is tall enough to push the empty state below the fold
-    await tester.ensureVisible(inEmptyState);
-    await tester.pumpAndSettle();
-    await tester.tap(inEmptyState);
-  }
+  final add = find.byType(AppCard).last;
+  await tester.ensureVisible(add);
+  await tester.pumpAndSettle();
+  await tester.tap(add);
   await tester.pumpAndSettle();
 }
 
-Future<void> _openAssignmentMenu(WidgetTester tester, String name) async {
+// the row is the control: it opens the form that edits and removes it
+Future<void> _openAssignment(WidgetTester tester, String name) async {
   // the add button floats over the end of the list, so the row is brought out
-  await tester.drag(find.byType(ListView), const Offset(0, -280));
+  await tester.drag(find.byType(CustomScrollView), const Offset(0, -280));
   await tester.pumpAndSettle();
-  await tester.tap(find.byTooltip('Options for $name'));
+  await tester.tap(find.text(name));
   await tester.pumpAndSettle();
 }
 
@@ -119,19 +111,23 @@ void main() {
     await tester.pumpWidget(_host(_FakeTranscriptRepository(_transcript())));
     await _openCourse(tester);
 
-    expect(find.text('No assignments yet'), findsWidgets);
+    expect(find.text('No assignments yet'), findsOneWidget);
     expect(
-      find.text(
-        'Add assignments and their weights to work the grade out from your '
-        'own marks.',
-      ),
-      findsOneWidget,
+      find.text('Assignments'),
+      findsNothing,
+      reason: 'a heading over an empty list names nothing',
     );
-    expect(find.text('CSCI 235'), findsOneWidget);
+    // the code and the credits sit under the name the card carries
+    expect(find.textContaining('CSCI 235'), findsOneWidget);
     expect(
-      find.widgetWithText(AppPrimaryButton, 'Add assignment'),
+      find.widgetWithText(AppCard, 'Add assignment'),
       findsOneWidget,
-      reason: 'the empty list carries the action that fills it',
+      reason: 'the empty list still ends in the control that fills it',
+    );
+    expect(
+      find.byType(FloatingActionButton),
+      findsNothing,
+      reason: 'a button floating over the list covered its last row',
     );
     expect(
       find.text('Assumes full marks on everything not yet graded.'),
@@ -181,11 +177,13 @@ void main() {
       repository.transcript.courses.single.assignments.single.earnedScore,
       isNull,
     );
+    // an absent grade is left absent rather than spelled out twice over
     expect(
       find.text('Nothing is graded yet, so there is no grade to show.'),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(find.byType(GradusStatusChip), findsWidgets);
+    expect(find.text('Not graded yet'), findsNothing);
+    expect(find.text('Current grade'), findsNothing);
   });
 
   testWidgets('the form refuses an invalid weight and score', (tester) async {
@@ -254,9 +252,7 @@ void main() {
     await tester.pumpWidget(_host(repository));
     await _openCourse(tester);
 
-    await _openAssignmentMenu(tester, 'Midterm');
-    await tester.tap(find.text('Edit assignment'));
-    await tester.pumpAndSettle();
+    await _openAssignment(tester, 'Midterm');
     await tester.enterText(find.byType(TextFormField).at(3), '70');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
@@ -266,7 +262,12 @@ void main() {
       70,
       reason: 'the assignment being edited must not block its own weight',
     );
-    expect(find.text('C'), findsOneWidget, reason: '70% is a C on this scale');
+    // the course letter, and the same letter on the assignment that set it
+    expect(
+      find.text('C'),
+      findsNWidgets(2),
+      reason: '70% is a C on this scale',
+    );
   });
 
   testWidgets('an assignment is deleted only after confirmation', (
@@ -283,18 +284,19 @@ void main() {
     await tester.pumpWidget(_host(repository));
     await _openCourse(tester);
 
-    await _openAssignmentMenu(tester, 'Midterm');
-    await tester.tap(find.text('Delete Midterm'));
+    await _openAssignment(tester, 'Midterm');
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(repository.transcript.courses.single.assignments, hasLength(2));
 
-    await _openAssignmentMenu(tester, 'Midterm');
-    await tester.tap(find.text('Delete Midterm'));
-    await tester.pumpAndSettle();
-    expect(find.text('Delete Midterm? This cannot be undone.'), findsOneWidget);
+    await _openAssignment(tester, 'Midterm');
     await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete this assignment?'), findsOneWidget);
+    // the form's own Delete is behind the sheet, the confirmation's is last
+    await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();
 
     expect(repository.transcript.courses.single.assignments.single.id, 'a2');
@@ -318,12 +320,14 @@ void main() {
     await _openCourse(tester);
 
     expect(find.text('90.0%'), findsWidgets);
-    expect(find.text('36.0%'), findsOneWidget);
     expect(find.text('60%'), findsWidgets);
     expect(find.text('96.0%'), findsOneWidget);
-    expect(find.text('Grading setup adds up to 100%.'), findsOneWidget);
-    expect(find.text('From assignments'), findsOneWidget);
-    expect(find.text('A'), findsOneWidget);
+    // a setup that adds up is the normal case, it needs no announcement
+    expect(find.text('Grading setup adds up to 100%.'), findsNothing);
+    // where a grade came from is visible from the assignments listed below
+    expect(find.text('From assignments'), findsNothing);
+    // the course letter, and the letter the marked assignment earned
+    expect(find.text('A'), findsNWidgets(2));
   });
 
   testWidgets('an incomplete grading setup is named on the detail', (
@@ -342,23 +346,22 @@ void main() {
     );
     await _openCourse(tester);
 
-    expect(
-      find.text('70% of this course\'s grading setup is unallocated.'),
-      findsOneWidget,
-    );
+    // the shortfall qualifies the bar, so it reads as part of its label
+    expect(find.text('Graded weight (70% unallocated)'), findsOneWidget);
   });
 
-  testWidgets('a pass/fail course says what it does to the average', (
+  testWidgets('a letter with no points says what it does to the average', (
     tester,
   ) async {
     await tester.pumpWidget(
       _host(
         _FakeTranscriptRepository(
           _transcript(
-            gradingMode: GradingMode.passFail,
-            assignments: [
-              _assignment('a1', 'Project', weight: 100, earnedScore: 95),
-            ],
+            grade: const Grade(
+              letter: 'P',
+              qualityPoints: 0,
+              countsTowardGpa: false,
+            ),
           ),
         ),
       ),
@@ -369,19 +372,11 @@ void main() {
       find.text('Counts as attempted credit, not toward the GPA.'),
       findsOneWidget,
     );
-    expect(find.text('95.0%'), findsWidgets);
   });
 
-  testWidgets('an excluded course says it is not counted', (tester) async {
-    await tester.pumpWidget(
-      _host(_FakeTranscriptRepository(_transcript(includeInGpa: false))),
-    );
-    await _openCourse(tester);
-
-    expect(find.text('Not counted in the GPA'), findsOneWidget);
-  });
-
-  testWidgets('a hand-entered letter says where it came from', (tester) async {
+  testWidgets('a hand-entered letter shows without a provenance line', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _host(
         _FakeTranscriptRepository(
@@ -391,11 +386,80 @@ void main() {
     );
     await _openCourse(tester);
 
-    expect(find.text('Entered by hand'), findsOneWidget);
     expect(find.text('B'), findsOneWidget);
+    expect(find.text('Entered by hand'), findsNothing);
   });
 
-  testWidgets('the assumption travels with the maximum it belongs to', (
+  testWidgets('a course whose weights add up offers no more assignments', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        _FakeTranscriptRepository(
+          _transcript(
+            assignments: [
+              _assignment('a1', 'Midterm', weight: 40, earnedScore: 90),
+              _assignment('a2', 'Final', weight: 60, earnedScore: 80),
+            ],
+          ),
+        ),
+      ),
+    );
+    await _openCourse(tester);
+
+    // there is no weight left to give one, so the control would only mislead
+    expect(find.widgetWithText(AppCard, 'Add assignment'), findsNothing);
+    expect(
+      find.text('Graded weight'),
+      findsOneWidget,
+      reason: 'the weight belongs beside the assignments that carry it',
+    );
+  });
+
+  testWidgets('an unmarked assignment shows no figure at all', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        _FakeTranscriptRepository(
+          _transcript(assignments: [_assignment('a1', 'Midterm')]),
+        ),
+      ),
+    );
+    await _openCourse(tester);
+
+    expect(find.text('Midterm'), findsOneWidget);
+    // the muted letter already says it is unmarked; a dash beside it repeats
+    expect(
+      find.descendant(
+        of: find.widgetWithText(AppCard, 'Midterm'),
+        matching: find.text('—'),
+      ),
+      findsOneWidget,
+      reason: 'the letter keeps its placeholder, the percentage is dropped',
+    );
+  });
+
+  testWidgets('an assignment shows its mark beside its percentage', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        _FakeTranscriptRepository(
+          _transcript(
+            assignments: [
+              _assignment('a1', 'Midterm', weight: 100, earnedScore: 45),
+            ],
+          ),
+        ),
+      ),
+    );
+    await _openCourse(tester);
+
+    // a percentage alone hides the marks it was worked out from
+    expect(find.text('45/100'), findsOneWidget);
+    expect(find.text('45.0%'), findsWidgets);
+  });
+
+  testWidgets('the maximum stands without a sentence explaining it', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -412,7 +476,7 @@ void main() {
     expect(find.text('Max possible'), findsOneWidget);
     expect(
       find.text('Assumes full marks on everything not yet graded.'),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
@@ -428,7 +492,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
-    expect(find.text('CSCI 235'), findsOneWidget);
+    expect(find.textContaining('CSCI 235'), findsOneWidget);
   });
 
   for (final locale in supportedGradusLocales) {
@@ -465,7 +529,9 @@ void main() {
     );
     await _openCourse(tester);
 
-    expect(find.bySemanticsLabel('Options for Midterm'), findsOneWidget);
+    // the course's own controls are the icon-only ones on this screen
+    expect(find.bySemanticsLabel('Edit course'), findsOneWidget);
+    expect(find.bySemanticsLabel('Back'), findsOneWidget);
     semantics.dispose();
   });
 
@@ -486,15 +552,15 @@ void main() {
     );
     await _openCourse(tester);
 
-    final earned = tester.getTopLeft(find.text('Earned toward final'));
-    final remaining = tester.getTopLeft(find.text('Remaining weight'));
+    final maximum = tester.getTopLeft(find.text('Max possible'));
+    final credits = tester.getTopLeft(find.text('Credits'));
 
     expect(
-      remaining.dy,
-      earned.dy,
+      credits.dy,
+      maximum.dy,
       reason: 'a stat grid that collapses turns the card into a tower',
     );
-    expect(remaining.dx, greaterThan(earned.dx));
+    expect(credits.dx, greaterThan(maximum.dx));
   });
 
   testWidgets('Done leaves focus mode once for good', (tester) async {
