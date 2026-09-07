@@ -1,8 +1,8 @@
 {
   "@@locale": "en",
-  "featureTitle": "GPA",
+  "featureTitle": "Gradus",
   "@featureTitle": {
-    "description": "Title of the GPA feature screen"
+    "description": "The product name, shown as the screen title"
   },
   "noCourses": "No courses yet",
   "@noCourses": {
@@ -62,18 +62,13 @@
   "courseGrade": "Grade",
   "gradeNotSet": "Not graded yet",
   "save": "Save",
+  "back": "Back",
+  "@back": {
+    "description": "Semantics label for the icon-only back control"
+  },
   "cancel": "Cancel",
   "done": "Done",
   "delete": "Delete",
-  "deleteCourse": "Delete {title}",
-  "@deleteCourse": {
-    "description": "Semantics label for the delete control",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
   "titleRequired": "Enter a course name",
   "creditsRequired": "Enter credits between 0 and 24",
   "saveFailed": "Could not save. Your change was undone.",
@@ -86,7 +81,6 @@
   "addSemester": "Add semester",
   "editSemester": "Edit semester",
   "semesterName": "Semester name",
-  "semesterNameHelp": "For example, Fall 2026.",
   "semesterNameRequired": "Enter a semester name",
   "unnamedSemester": "Unnamed semester",
   "deleteSemester": "Delete {name}",
@@ -99,23 +93,11 @@
     }
   },
   "deleteSemesterBlocked": "Move or delete its courses first",
-  "deleteSemesterConfirm": "Delete {name}? This cannot be undone.",
-  "@deleteSemesterConfirm": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
+  "deleteSemesterConfirm": "Delete this semester?",
   "noSemesters": "No semesters yet",
   "semesterGpa": "Semester GPA",
   "cumulativeGpa": "Cumulative GPA",
-  "gradingMode": "Grading",
-  "gradingModeGraded": "Graded",
-  "gradingModePassFail": "Pass/fail",
   "passFailNote": "Counts as attempted credit, not toward the GPA.",
-  "includeInGpa": "Include in GPA",
-  "excludedFromGpa": "Not counted in the GPA",
   "assignmentsTitle": "Assignments",
   "addAssignment": "Add assignment",
   "editAssignment": "Edit assignment",
@@ -128,27 +110,20 @@
       }
     }
   },
-  "deleteAssignmentConfirm": "Delete {name}? This cannot be undone.",
-  "@deleteAssignmentConfirm": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "deleteCourseConfirm": "Delete {title} and its assignments? This cannot be undone.",
-  "@deleteCourseConfirm": {
+  "deleteAssignmentConfirm": "Delete this assignment?",
+  "deleteCourse": "Delete {title}",
+  "@deleteCourse": {
+    "description": "Semantics label for the icon-only delete control",
     "placeholders": {
       "title": {
         "type": "String"
       }
     }
   },
+  "deleteCourseConfirm": "Delete this course?",
   "assignmentName": "Assignment name",
-  "assignmentNameHelp": "Used for the course grade and for tracking.",
   "assignmentNameRequired": "Enter an assignment name",
   "assignmentWeight": "Weight",
-  "assignmentWeightHelp": "Percentage of the final course grade, from 0 to 100.",
   "assignmentWeightRequired": "Enter a weight above 0 and up to 100",
   "assignmentWeightOverBudget": "Only {available}% is still unallocated in this course",
   "@assignmentWeightOverBudget": {
@@ -162,18 +137,12 @@
   "maximumScore": "Max score",
   "maximumScoreRequired": "Enter a max score above 0",
   "earnedScore": "Obtained score",
-  "earnedScoreHelp": "Leave this empty until the work is graded.",
   "earnedScoreRequired": "Enter a score between 0 and the max score",
   "noAssignments": "No assignments yet",
   "currentGrade": "Current grade",
-  "earnedTowardFinal": "Earned toward final",
-  "gradedWeightLabel": "Graded weight",
-  "remainingWeightLabel": "Remaining weight",
-  "unallocatedWeightLabel": "Unallocated",
-  "maximumPossible": "Max possible",
-  "maximumPossibleNote": "Assumes full marks on everything not yet graded.",
-  "setupIncomplete": "{percent}% of this course's grading setup is unallocated.",
-  "@setupIncomplete": {
+  "gradedWeightUnallocated": "Graded weight ({percent}% unallocated)",
+  "@gradedWeightUnallocated": {
+    "description": "The graded-weight label when the weights do not add up to 100",
     "placeholders": {
       "percent": {
         "type": "double",
@@ -181,19 +150,8 @@
       }
     }
   },
-  "setupComplete": "Grading setup adds up to 100%.",
-  "noGradedAssignments": "Nothing is graded yet, so there is no grade to show.",
-  "assignmentProgress": "{graded} of {total} graded",
-  "@assignmentProgress": {
-    "placeholders": {
-      "graded": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
+  "gradedWeightLabel": "Graded weight",
+  "maximumPossible": "Max possible",
   "percentValue": "{value}%",
   "@percentValue": {
     "description": "A percentage rounded for display",
@@ -217,35 +175,27 @@
       }
     }
   },
-  "creditsValue": "{value} cr",
-  "@creditsValue": {
+  "scoreOutOf": "{earned}/{maximum}",
+  "@scoreOutOf": {
+    "description": "A mark as obtained over maximum, shown beside its percentage",
     "placeholders": {
-      "value": {
+      "earned": {
+        "type": "double",
+        "format": "decimalPattern"
+      },
+      "maximum": {
         "type": "double",
         "format": "decimalPattern"
       }
     }
   },
-  "gradeFromAssignments": "From assignments",
-  "gradeFromManual": "Entered by hand",
   "courseUnavailable": "This course is no longer available.",
   "noSemestersBody": "Create a semester, then add the courses you are taking.",
   "noCoursesBody": "Add a course to see your GPA for this semester.",
-  "noAssignmentsBody": "Add assignments and their weights to work the grade out from your own marks.",
   "loadFailedBody": "Something went wrong reading this device.",
   "retry": "Try again",
-  "gpaNone": "GPA —",
   "semesterActions": "Semester options",
-  "courseActions": "Options for {title}",
   "assignmentActions": "Options for {name}",
-  "@courseActions": {
-    "description": "Semantics label for the per-course overflow menu",
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
   "@assignmentActions": {
     "description": "Semantics label for the per-assignment overflow menu",
     "placeholders": {
@@ -254,8 +204,36 @@
       }
     }
   },
-  "creditsCountedLabel": "Credits counted",
-  "creditsRatio": "{quality} of {attempted}",
+  "creditsCount": "{value} credits",
+  "creditsNumber": "{value}",
+  "@creditsCount": {
+    "description": "A credit total in words, for a row that has room for them",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "@creditsNumber": {
+    "description": "A credit total with no unit, where a label supplies it",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "creditsEarnedCount": "{value} credits earned",
+  "@creditsEarnedCount": {
+    "description": "Credits earned, as a line under the average it was earned over",
+    "placeholders": {
+      "value": {
+        "type": "double",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "@creditsRatio": {
     "description": "A stat value: how many credits count out of those attempted",
     "placeholders": {
@@ -268,5 +246,71 @@
         "format": "decimalPattern"
       }
     }
-  }
+  },
+  "importFromSyllabus": "Fill from syllabus",
+  "@importFromSyllabus": {
+    "description": "Button that picks a syllabus PDF and fills the course form"
+  },
+  "importRunning": "Reading the syllabus",
+  "@importRunning": {
+    "description": "Shown while the chosen file is being read"
+  },
+  "importNote": "The file is sent to the Gradus server and read there. Check what it filled in before saving.",
+  "@importNote": {
+    "description": "Says where the document goes, shown next to the import button"
+  },
+  "importMissingFields": "Not found in the syllabus: {fields}",
+  "@importMissingFields": {
+    "description": "Names the fields the syllabus did not state",
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "importedAssignments": "From the syllabus",
+  "@importedAssignments": {
+    "description": "Heading over the assignments an import proposed"
+  },
+  "importedScoreNote": "Each is out of 100 and unmarked until you enter a score",
+  "@importedScoreNote": {
+    "description": "Explains the maximum score an import assumes"
+  },
+  "importedWeightTotal": "Weights total {total}%",
+  "@importedWeightTotal": {
+    "placeholders": {
+      "total": {
+        "type": "double",
+        "format": "decimalPatternDigits",
+        "optionalParameters": {
+          "decimalDigits": 1
+        }
+      }
+    }
+  },
+  "importedWeightOverBudget": "That is over 100%. Remove an entry before saving.",
+  "@importedWeightOverBudget": {
+    "description": "Shown when imported weights exceed what a course allows"
+  },
+  "importRemoveEntry": "Remove {name}",
+  "@importRemoveEntry": {
+    "description": "Semantics label for the control that drops one imported entry",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "importNothingFound": "Nothing could be read from that syllabus",
+  "importNotAPdf": "That file is not a PDF",
+  "importTooLarge": "That file is too large",
+  "importEncrypted": "That file is password protected",
+  "importNoText": "That file has no text to read; a scan cannot be imported",
+  "importRateLimited": "Too many imports just now. Try again shortly.",
+  "importUnavailable": "The syllabus could not be read right now",
+  "importNetwork": "No connection to the Gradus server",
+  "importFieldCode": "code",
+  "importFieldTitle": "title",
+  "importFieldCredits": "credits",
+  "importFieldAssignments": "assignments"
 }
