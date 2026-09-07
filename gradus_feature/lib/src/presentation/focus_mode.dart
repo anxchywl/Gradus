@@ -6,6 +6,9 @@ const Duration focusModeDuration = Duration(milliseconds: 240);
 
 const Curve focusModeCurve = Curves.easeOutCubic;
 
+// a sheet that swaps its whole body travels further than a folding field
+const Duration chooserDuration = Duration(milliseconds: 340);
+
 // a sheet keeps the wrong half of itself when the keyboard takes the rest
 class SheetFocusMode extends ChangeNotifier {
   final Map<Object, FocusNode> _nodes = {};
