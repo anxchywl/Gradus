@@ -4,14 +4,27 @@ import 'package:flutter/material.dart';
 import '../domain/semester.dart';
 import '../l10n/gradus_strings.dart';
 import 'focus_mode.dart';
+import 'gradus_widgets.dart';
 
 enum _Field { name }
 
 class SemesterForm extends StatefulWidget {
-  const SemesterForm({super.key, required this.nextPosition, this.existing});
+  const SemesterForm({
+    super.key,
+    required this.nextPosition,
+    this.existing,
+    this.onDelete,
+    this.canDelete = false,
+  });
 
   final int nextPosition;
   final Semester? existing;
+
+  // an edited semester is removed from the sheet that opened it
+  final VoidCallback? onDelete;
+
+  // a term still holding courses stays, and the sheet says so
+  final bool canDelete;
 
   @override
   State<SemesterForm> createState() => _SemesterFormState();
@@ -30,6 +43,13 @@ class _SemesterFormState extends State<SemesterForm> {
     _name.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  void _dismiss() {
+    final delete = widget.onDelete;
+    Navigator.of(context).pop();
+    // the confirmation belongs to the screen, which outlives this sheet
+    if (widget.canDelete) delete?.call();
   }
 
   void _submit() {
@@ -63,7 +83,7 @@ class _SemesterFormState extends State<SemesterForm> {
             bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
           child: SingleChildScrollView(
-            padding: AppSpacing.screenPadding,
+            padding: gradusSheetPadding(context),
             child: FocusModeBody(
               child: Form(
                 key: _formKey,
@@ -76,11 +96,10 @@ class _SemesterFormState extends State<SemesterForm> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            widget.existing == null
+                          GradusSheetTitle(
+                            text: widget.existing == null
                                 ? strings.addSemester
                                 : strings.editSemester,
-                            style: AppTextStyles.headlineSmall,
                           ),
                           AppSpacing.verticalDf,
                         ],
@@ -92,7 +111,6 @@ class _SemesterFormState extends State<SemesterForm> {
                       autofocus: _focus.takeAutofocus(),
                       decoration: InputDecoration(
                         labelText: strings.semesterName,
-                        helperText: strings.semesterNameHelp,
                       ),
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _submit(),
@@ -108,15 +126,21 @@ class _SemesterFormState extends State<SemesterForm> {
                       actions: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          AppPrimaryButton(
-                            text: strings.save,
-                            onPressed: _submit,
+                          GradusFormActions(
+                            primaryLabel: strings.save,
+                            onPrimary: _submit,
+                            secondaryLabel: widget.onDelete == null
+                                ? strings.cancel
+                                : strings.delete,
+                            onSecondary: _dismiss,
+                            isSecondaryDestructive: widget.onDelete != null,
+                            isSecondaryEnabled:
+                                widget.onDelete == null || widget.canDelete,
                           ),
-                          AppSpacing.verticalSm,
-                          AppTextButton(
-                            text: strings.cancel,
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
+                          if (widget.onDelete != null && !widget.canDelete) ...[
+                            AppSpacing.verticalSm,
+                            GradusNote(text: strings.deleteSemesterBlocked),
+                          ],
                         ],
                       ),
                     ),

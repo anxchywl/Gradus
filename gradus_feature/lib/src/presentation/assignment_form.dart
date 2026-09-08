@@ -5,6 +5,7 @@ import '../domain/assignment.dart';
 import '../domain/weights.dart';
 import '../l10n/gradus_strings.dart';
 import 'focus_mode.dart';
+import 'gradus_widgets.dart';
 
 enum _Field { name, weight, maximumScore, earnedScore }
 
@@ -14,6 +15,7 @@ class AssignmentForm extends StatefulWidget {
     required this.courseId,
     required this.availableWeight,
     this.existing,
+    this.onDelete,
   });
 
   final String courseId;
@@ -21,6 +23,9 @@ class AssignmentForm extends StatefulWidget {
   // the edited assignment gives its own weight back, or an edit is blocked
   final double availableWeight;
   final Assignment? existing;
+
+  // an edited assignment is removed from the sheet that opened it
+  final VoidCallback? onDelete;
 
   @override
   State<AssignmentForm> createState() => _AssignmentFormState();
@@ -113,6 +118,13 @@ class _AssignmentFormState extends State<AssignmentForm> {
     );
   }
 
+  void _dismiss() {
+    final delete = widget.onDelete;
+    Navigator.of(context).pop();
+    // the confirmation belongs to the screen, which outlives this sheet
+    delete?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
@@ -126,7 +138,7 @@ class _AssignmentFormState extends State<AssignmentForm> {
             bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
           child: SingleChildScrollView(
-            padding: AppSpacing.screenPadding,
+            padding: gradusSheetPadding(context),
             child: FocusModeBody(
               child: Form(
                 key: _formKey,
@@ -139,11 +151,10 @@ class _AssignmentFormState extends State<AssignmentForm> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            widget.existing == null
+                          GradusSheetTitle(
+                            text: widget.existing == null
                                 ? strings.addAssignment
                                 : strings.editAssignment,
-                            style: AppTextStyles.headlineSmall,
                           ),
                           AppSpacing.verticalDf,
                         ],
@@ -157,7 +168,6 @@ class _AssignmentFormState extends State<AssignmentForm> {
                         autofocus: _focus.takeAutofocus(),
                         decoration: InputDecoration(
                           labelText: strings.assignmentName,
-                          helperText: strings.assignmentNameHelp,
                         ),
                         textInputAction: TextInputAction.next,
                         onFieldSubmitted: (_) => _focus.moveTo(_Field.weight),
@@ -174,7 +184,6 @@ class _AssignmentFormState extends State<AssignmentForm> {
                         focusNode: _focus.nodeFor(_Field.weight),
                         decoration: InputDecoration(
                           labelText: strings.assignmentWeight,
-                          helperText: strings.assignmentWeightHelp,
                         ),
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -234,39 +243,19 @@ class _AssignmentFormState extends State<AssignmentForm> {
                         ],
                       ),
                     ),
-                    FocusFold(
-                      hidden: _focus.hidesChrome,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AppSpacing.verticalSm,
-                          Text(
-                            strings.earnedScoreHelp,
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                     AppSpacing.verticalXl,
                     FocusModeActions(
                       isTyping: _focus.isTyping,
                       doneLabel: strings.done,
                       onDone: _focus.release,
-                      actions: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AppPrimaryButton(
-                            text: strings.save,
-                            onPressed: _submit,
-                          ),
-                          AppSpacing.verticalSm,
-                          AppTextButton(
-                            text: strings.cancel,
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ],
+                      actions: GradusFormActions(
+                        primaryLabel: strings.save,
+                        onPrimary: _submit,
+                        secondaryLabel: widget.onDelete == null
+                            ? strings.cancel
+                            : strings.delete,
+                        onSecondary: _dismiss,
+                        isSecondaryDestructive: widget.onDelete != null,
                       ),
                     ),
                   ],
