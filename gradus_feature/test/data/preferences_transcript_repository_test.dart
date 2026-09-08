@@ -18,8 +18,6 @@ Course _course(
   String id, {
   String semesterId = 'fall',
   List<Assignment> assignments = const [],
-  GradingMode gradingMode = GradingMode.graded,
-  bool includeInGpa = true,
 }) => Course(
   id: id,
   semesterId: semesterId,
@@ -27,8 +25,6 @@ Course _course(
   title: 'Course $id',
   credits: 3,
   grade: const Grade(letter: 'A', qualityPoints: 4),
-  gradingMode: gradingMode,
-  includeInGpa: includeInGpa,
   assignments: assignments,
 );
 
@@ -94,22 +90,31 @@ void main() {
     );
   });
 
-  test('grading mode and exclusion survive the round trip', () async {
-    final repository = _repository('student-1');
-    await repository.save(
-      Transcript(
-        semesters: [_semester()],
-        courses: [
-          _course('1', gradingMode: GradingMode.passFail),
-          _course('2', includeInGpa: false),
+  test('a record written before the grading fields went still loads', () async {
+    SharedPreferences.setMockInitialValues({
+      'gpa_v2_student-1_transcript': jsonEncode({
+        'semesters': [
+          {'id': 'fall', 'name': 'Fall 2026', 'position': 1},
         ],
-      ),
-    );
+        'courses': [
+          {
+            'id': '1',
+            'semesterId': 'fall',
+            'title': 'Course 1',
+            'credits': 3,
+            'grade': 'A',
+            'gradingMode': 'passFail',
+            'includeInGpa': false,
+          },
+        ],
+      }),
+    });
 
-    final loaded = await repository.load();
+    final loaded = await _repository('student-1').load();
 
-    expect(loaded.courses.first.gradingMode, GradingMode.passFail);
-    expect(loaded.courses.last.includeInGpa, isFalse);
+    // the keys are ignored rather than refused, so no transcript is lost
+    expect(loaded.courses.single.title, 'Course 1');
+    expect(loaded.courses.single.grade?.letter, 'A');
   });
 
   test('an empty store is empty, not an error', () async {

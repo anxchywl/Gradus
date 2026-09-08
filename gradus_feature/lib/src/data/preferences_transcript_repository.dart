@@ -140,8 +140,6 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
     'title': course.title,
     'credits': course.credits,
     'grade': course.grade?.letter,
-    'gradingMode': course.gradingMode.name,
-    'includeInGpa': course.includeInGpa,
     'assignments': course.assignments.map(_jsonFromAssignment).toList(),
   };
 
@@ -193,7 +191,6 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
     }
 
     final code = entry['code'];
-    final includeInGpa = entry['includeInGpa'];
 
     try {
       return Course(
@@ -203,8 +200,6 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
         title: title,
         credits: credits.toDouble(),
         grade: _gradeFrom(entry['grade']),
-        gradingMode: _gradingModeFrom(entry['gradingMode']),
-        includeInGpa: includeInGpa is bool ? includeInGpa : true,
         assignments: assignments,
       );
     } on Exception {
@@ -239,11 +234,6 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
       return null;
     }
   }
-
-  GradingMode _gradingModeFrom(Object? stored) =>
-      stored == GradingMode.passFail.name
-      ? GradingMode.passFail
-      : GradingMode.graded;
 
   Grade? _gradeFrom(Object? letter) {
     if (letter is! String) return null;
