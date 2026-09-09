@@ -1,9 +1,10 @@
 # Gradus Product
 
 **Partly specified.** A student can organise courses into semesters, grade each
-course from assignments they enter by hand, and see a credit-weighted average,
-all stored on their own device. Everything about importing data is still open -
-see [decisions/0001](./decisions/0001-course-sync-and-moodle.md).
+course from assignments they enter by hand or fill a course in from its syllabus,
+and see a credit-weighted average, all stored on their own device. Reading a
+syllabus is decided and built; importing from the registrar or from Moodle is
+still open decision 2 below.
 
 Nothing below is a decision. It records what is known, what is assumed, and what
 has to be answered before the first feature endpoint or screen is written. Do
@@ -16,13 +17,62 @@ one feature among several. The superapp owns identity; this feature never signs
 anyone in.
 
 Implemented: semesters, each holding courses; add, edit and delete a course with
-a code, title, credit weight, grading mode, an include-in-GPA switch and an
-optional letter chosen by hand; add, edit and delete assignments inside a course,
-each with a weight, a maximum score and a score that stays empty until the work
-is marked; a credit-weighted average that excludes pass/fail from the average
-while still counting it as attempted; semester and cumulative averages reported
-separately; an all-semesters view grouped by term; device-local persistence
-namespaced per account, carrying forward data written before semesters existed.
+a code, title, credit weight and an optional letter chosen by hand; add, edit and
+delete assignments inside a course, each with a weight, a maximum score and a
+score that stays empty until the work is marked; a credit-weighted average that
+counts a letter the scale gives no points to as attempted credit only; semester
+and cumulative averages reported separately; an all-semesters view grouped by
+term; device-local persistence namespaced per account, carrying forward data
+written before semesters existed.
+
+### Filling a course in from its syllabus
+
+A student adding a course can pick its syllabus PDF instead of typing it. The
+file is read on the server and comes back as a proposal: course code, title,
+credit value with the unit as printed, and one assignment per row of the
+assessment table with its weight. Nothing is applied on its own - the fields are
+filled in for the student to check, entries can be dropped, and nothing is stored
+until Save.
+
+- The letter grade stays unset and every score stays unmarked. Marks are the
+  student's to enter; the import only sets up what to enter them against.
+- Each imported assignment is out of 100, because a syllabus states weights and
+  never a maximum score.
+- Credits are reported in the unit the syllabus printed, usually ECTS, and are
+  never converted. What an ECTS credit is worth locally is an institutional rule
+  and is not one of ours to invent.
+- A field the syllabus did not state is left empty and named on screen. Syllabi
+  share no layout, so a partial fill is normal rather than a failure.
+- Weights are shown as they were read. A set totalling over 100 is flagged and
+  blocks Save until the student drops an entry; it is never quietly scaled.
+- The grading table in a syllabus is not imported. Which scale applies is open
+  decision 1 below.
+
+**Why a model reads it rather than a parser.** Three real syllabi share no
+template: two sit on the NU Course Specification Form and disagree about the
+assessment table's columns and numbering anyway, and the third is an
+instructor's Word document that states credits in a sentence and carries four
+other assessment-shaped tables - a weekly schedule, a table of contents, a
+percentage-range grading table, and policy prose about late penalties. A rule
+parser finds the wrong table before the right one, and fails worst on exactly
+the document that needs it most. So the file is read on the server by
+`claude-haiku-4-5`, at roughly a cent per import, and the model id is
+configuration rather than code.
+
+The document is untrusted input in a prompt, and is treated as such: quoted
+between markers, declared as data rather than instructions, with no tools on the
+call and nothing the model returns allowed to select an identifier, a storage
+key, a semester or an endpoint. Every value comes back sanitised and
+range-checked on both sides. `pypdf` extracts the text on the server and only
+the text is sent - sending the PDF itself costs several times more for no gain.
+A scanned syllabus cannot be imported at all: there is no OCR, and adding one
+would be a new decision. Rows are taken as the table states them, so a single
+20% row whose notes read "5% each" stays one assignment rather than becoming
+four the table never listed.
+
+Two things follow from spending money per call. Extraction is rate-limited per
+account and fails closed, and an idempotency key is required so a retried upload
+is not paid for twice.
 
 ### How a course reaches a grade
 
@@ -52,10 +102,9 @@ it is displayed.
 - A student enters or imports courses, each with a title, a credit weight and a
   grade, and sees a credit-weighted average.
 - Some grades sit on a transcript without counting toward the average - pass,
-  fail-without-penalty, transfer credit. `Course.isEligibleForGpa` models what
-  the course allows and `CourseGrade.weighsOnGpa` what the resolved grade does.
-  A pass/fail course counts as attempted credit and never toward the average; a
-  course switched out of the GPA counts toward neither.
+  fail-without-penalty, transfer credit. The scale marks such a letter with
+  `Grade.countsTowardGpa`, and `CourseGrade.weighsOnGpa` carries it through: the
+  credit is attempted, the quality points are not awarded.
 - An operator role exists, because the superapp distinguishes one. What an
   operator can actually do here is undecided.
 
@@ -72,9 +121,33 @@ Each of these changes what gets built. None should be guessed.
    computed from it. `GradeScale` is an interface for this reason: a scale that
    declines to map percentages returns no letter, and the feature shows the
    percentage alone rather than claiming a grade.
-2. **Where course data comes from.** Student-entered, imported from the
-   registrar, or both. This decides whether a backend is needed at all, and
-   whether grades are ever writable by the student.
+2. **Where course data comes from.** Student-entered, read from a syllabus,
+   imported from the registrar, pulled from Moodle, or some combination. This
+   decides whether a backend is needed at all, and whether grades are ever
+   writable by the student.
+
+   Registrar sync is feasible and already solved elsewhere: NU's own Nuspace
+   project fetches the public course catalog with no credentials, and, with a
+   student's login, reads current enrolment as JSON and parses the unofficial
+   transcript PDF - which carries the whole academic history with official
+   grade points already in it. Moodle is untouched ground by comparison; its
+   web services may not even be enabled, and letter thresholds there are set per
+   course. Whether any of this belongs here at all depends on whether Gradus
+   replaces the existing Nuspace Courses tab, embeds in it, or stands apart.
+
+   Four rules hold whenever it is built, and are not open:
+
+   - Do not scrape a registrar or an LMS where an API or a JSON endpoint exists.
+   - Never store a registrar password, and never hold an LMS token server-side
+     if it can live on the device. A student handing over a university password
+     is a cost no amount of care at the server removes, so the UI says so
+     plainly.
+   - Never disable TLS verification, whatever a reference implementation does.
+   - Extraction proposes, the student confirms, and the confirmation is what
+     persists.
+
+   Automated access to university systems with a student's own credentials is
+   also an acceptable-use question for NU IT before it is a technical one.
 3. **Whether anything is stored server-side.** If a GPA is only ever computed
    from data the student typed on one device, the backend reduces to nothing.
    The current backend is a security spine with no persistence for exactly this
@@ -95,5 +168,5 @@ Each of these changes what gets built. None should be guessed.
 
 ## What is deliberately not here
 
-Anything about implementation. Layers and boundaries are in
-[ARCHITECTURE.md](./ARCHITECTURE.md), controls in [SECURITY.md](./SECURITY.md).
+Anything about implementation. Layers, boundaries and the control inventory are
+in [ARCHITECTURE.md](./ARCHITECTURE.md).
