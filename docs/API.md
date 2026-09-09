@@ -11,8 +11,40 @@ product is not specified.
 
 | Endpoint | Authentication | Purpose |
 |---|---|---|
+| `POST /api/v1/syllabus-extractions` | Bearer | Read a syllabus PDF into a course draft |
 | `GET /health/live` | No | Process liveness |
-| `GET /health/ready` | No | Database readiness |
+| `GET /health/ready` | No | Service readiness; the service has no dependency to wait on |
+
+### Syllabus extraction
+
+`POST /api/v1/syllabus-extractions` takes the PDF as the request body with
+`Content-Type: application/pdf` - one file, so there is no form parser in the
+path - and requires an `Idempotency-Key`, because the call costs money and a
+retry must be recognisable as one. It stores nothing.
+
+```json
+{"data": {"code": "MATH 273", "title": "Linear Algebra with Applications",
+          "credits": 8, "creditUnit": "ECTS", "term": "Fall 2026",
+          "assessments": [{"name": "Midterm exam", "weight": 40}]}}
+```
+
+Every field is nullable and `assessments` may be empty: a syllabus that states
+nothing recognisable is a partial answer, not an error. Weights are percentages
+of the final grade and are reported as extracted, never scaled to total 100.
+Credits carry the unit as printed and are never converted between credit
+systems.
+
+| Code | Status | Means |
+|---|---|---|
+| `document_not_a_pdf` | 422 | The bytes do not begin `%PDF-` |
+| `document_empty` | 422 | Nothing was uploaded |
+| `document_unreadable` | 422 | The bytes are a PDF header and not much else |
+| `document_encrypted` | 422 | Password protected |
+| `document_has_no_text` | 422 | No text layer; a scan, and there is no OCR |
+| `document_too_large` | 413 | Larger than `SYLLABUS_DOCUMENT_MAX_BYTES` |
+| `idempotency_key_invalid` | 422 | Header missing or malformed |
+| `rate_limited` | 429 | Past the per-account allowance |
+| `extraction_unavailable` | 503 | No API key configured, or the model call failed |
 
 ## Conventions every endpoint follows
 
@@ -54,6 +86,7 @@ its request, response and error codes.
 
 | Flutter interface | Endpoint | Request | Response | Errors |
 |---|---|---|---|---|
+| `SyllabusImporter.importFromFile` | `POST /api/v1/syllabus-extractions` | `application/pdf` body | draft | the table above |
 | `TranscriptRepository.load` | not implemented | - | - | - |
 | `TranscriptRepository.save` | not implemented | - | - | - |
 | `GradeScaleRepository.active` | not implemented | - | - | - |
