@@ -224,11 +224,13 @@ On the host: the repository checked out at `DEPLOY_PATH`, a filled
 `.env.production` beside it, and a Caddy site block for the domain reverse
 proxying `gradus-backend-1:8000`.
 
-Two of those are not configuration but decisions nobody has taken. There is no
-DNS record for `gradus.anxchywl.dev`, so the external health check cannot pass;
-and `preflight.sh` requires `HOST_JWT_ISSUER` and a key, which the host
-application has never agreed, so it will refuse the deployment on principle. It
-is meant to: a service nobody can authenticate against is not worth shipping.
+All of that is in place, and `v0.1.2` is deployed. `preflight.sh` requires
+`HOST_JWT_ISSUER` and a key, and it refuses without them - a service nobody can
+authenticate against is not worth shipping. There is no separate host
+application yet, so the issuer is this project's own: an HS256 secret held only
+in `.env.production`. That is honest for a prototype and wrong for anything
+else; when a real host exists, the algorithm moves to RS256 and only its public
+half lives here.
 
 `deploy.sh` detects whether another project's Caddy already owns 80 and 443. If
 it does, the service joins that proxy's network for ingress only through
@@ -247,11 +249,13 @@ the wished project runs, so the block belongs in that repository's
 
 Deliberately absent, so nobody assumes otherwise:
 
-- **A released deployment.** The pipeline exists and refuses to ship anything
-  unsafe, but nothing has shipped and the workflow has never run to completion:
-  `gradus.anxchywl.dev` has no DNS record, no deployment secret is set, and
-  preflight refuses without a host issuer and key. Images are also still built on
-  the host rather than in CI.
+- **Images are built on the host rather than in CI**, so the artifact a
+  deployment runs is not the artifact CI tested - only the revision is pinned,
+  not the build.
+- **Rollback can restore a broken image.** `deploy.sh` remembers whichever image
+  was running and puts it back on failure. When that image was itself failing,
+  the rollback lands on a second failure rather than a working service, which is
+  exactly what happened on the way to `v0.1.2`.
 - **Migrations and backups.** Neither exists, because nothing is stored. If
   server-side persistence is ever chosen (open decision 3 in PRODUCT.md), both
   are required before the first production write.

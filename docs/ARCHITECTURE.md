@@ -343,16 +343,16 @@ Read this before assuming the service is deployable.
   remaining weight evaluates to the current average itself, so shipping it as a
   separate figure would dress a restatement up as a forecast. `Max possible` is
   a bound and says what it assumes. See PRODUCT.md.
-- **Container hardening is written but never exercised.** No image has been
-  built or run in an environment resembling production.
-- **The deployment has never run.** `deploy/` builds the current revision,
-  refuses to ship a development mechanism, and rolls back to the previous image
-  on failure, but no release has gone out: `gradus.anxchywl.dev` has no DNS
-  record yet, and preflight refuses to deploy without a host issuer and key.
-  There is no backup or restore drill, and with no stored data there is nothing
-  yet to back up.
-- **No golden tests, no device integration tests, no end-to-end run against a
-  live backend.**
+- **The deployment runs, and is one container on a shared host.** `v0.1.2`
+  serves `gradus.anxchywl.dev` behind another project's Caddy. There is no
+  monitoring, no alerting, and no backup or restore drill - with nothing stored
+  there is nothing yet to back up, which stops being true the moment open
+  decision 3 is answered.
+- **The identity behind it is this project's own.** No separate host
+  application has agreed an issuer, so the deployment signs and verifies with
+  one HS256 secret. It authenticates, but only against tokens minted here.
+- **No golden tests, no device integration tests, and the client has never run
+  against the deployed backend.**
 
 ### Threat model
 

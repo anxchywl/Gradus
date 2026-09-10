@@ -8,10 +8,11 @@ It runs on its own. The feature is packaged so it can also be mounted inside a
 larger host application later, and if it ever is, that host owns identity - the
 feature never signs anyone in and holds no account of its own.
 
-> **Partly specified, and nothing has shipped.** Transcripts live on the device
-> and nothing is stored server-side. Production authentication is written but
-> has never met a real token, and there is no deployed environment. The limits
-> are listed at the bottom of this file rather than buried.
+> **Partly specified.** Transcripts live on the device and nothing is stored
+> server-side. The backend is deployed at `gradus.anxchywl.dev`, authenticating
+> against tokens this project itself issues rather than a separate host
+> application. The limits are listed at the bottom of this file rather than
+> buried.
 
 ## Features
 
@@ -125,8 +126,8 @@ Each document owns its subject once; nothing is repeated.
   percentage cutoffs the Course Specification Form prints. Those cutoffs are
   faculty discretion, so a course may state its own and the student would have
   to correct the letter by hand.
-- Nothing is deployed. `deploy/` refuses to ship a development mechanism or a
-  credential, but no release has gone out.
+- The deployed backend serves health and syllabus extraction, nothing else.
+  It shares a host with four other projects and has no monitoring.
 
 It is a foundation, and it says so.
 
