@@ -7,9 +7,14 @@ from app.config import AppEnvironment, AuthAdapter, Settings
 from tests.conftest import settings
 
 
-def test_environment_defaults_to_production() -> None:
-    # an omitted APP_ENV must fail closed, never open a development path
+def test_environment_defaults_to_production(monkeypatch: pytest.MonkeyPatch) -> None:
+    # an omitted APP_ENV must fail closed, never open a development path. the
+    # variable is cleared because ci sets it, and a default is only a default
+    # when nothing else supplies the value
+    monkeypatch.delenv("APP_ENV", raising=False)
+
     built = Settings.model_validate({})
+
     assert built.environment is AppEnvironment.production
 
 

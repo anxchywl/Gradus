@@ -13,4 +13,5 @@ regexTarget = "match"
 regexes = [
   # test fixtures name tokens but hold no real value
   '''(student|operator)-token-value''',
+  '''an-idempotency-key-\d+''',
 ]
