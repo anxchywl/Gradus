@@ -4,10 +4,13 @@ name: CI
 # downloaded tool is checksum-verified; tests/unit/test_ci_policy.py enforces
 # both, so this file cannot quietly drift
 
+# a push filter that names only tags excludes branches entirely, which is why
+# nothing ran here for the first thirty-nine commits. naming branches alone
+# leaves tag pushes out, which is what the tag filter was reaching for
 on:
   push:
-    tags-ignore:
-      - "v*.*.*"
+    branches:
+      - main
   pull_request:
 
 # read-only, and no job asks for more; a fork's pull request gets the same
