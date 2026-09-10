@@ -29,7 +29,7 @@ class UnknownGradeFailure extends GradusFailure {
 
 // the student is told which of these happened, so a refusal is never silent
 enum SyllabusImportProblem {
-  notAPdf,
+  unsupportedType,
   tooLarge,
   encrypted,
   noText,

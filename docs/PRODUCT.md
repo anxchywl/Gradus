@@ -27,7 +27,7 @@ written before semesters existed.
 
 ### Filling a course in from its syllabus
 
-A student adding a course can pick its syllabus PDF instead of typing it. The
+A student adding a course can pick its syllabus instead of typing it. The
 file is read on the server and comes back as a proposal: course code, title,
 credit value with the unit as printed, and one assignment per row of the
 assessment table with its weight. Nothing is applied on its own - the fields are
@@ -62,9 +62,9 @@ one course code.
 So the file is read on the server by a model. Which model is configuration
 rather than code - the provider and the model id are both settings, and four
 providers are supported. The default is free to run within its provider's rate
-limits, and reads the four syllabi in `backend/evals/` exactly: every field and
+limits, and reads the five syllabi in `backend/evals/` exactly: every field and
 every assessment row, on repeated runs. That is a real result on a small
-sample rather than a guarantee - four documents across two layouts - so a
+sample rather than a guarantee - five documents across two layouts - so a
 document unlike them is still an open question, and about a cent per import buys
 the answer for any candidate that replaces it.
 
@@ -74,9 +74,9 @@ call and nothing the model returns allowed to select an identifier, a storage
 key, a semester or an endpoint. Every value comes back sanitised and
 range-checked on both sides. `pypdf` extracts the text on the server and only
 the text is sent - sending the PDF itself costs several times more for no gain.
-A scanned syllabus cannot be imported at all: there is no OCR, and adding one
-would be a new decision. Neither can a Word document, which instructors do hand
-out, so a student holding one has to convert it first. Rows are taken as the table states them, so a single
+A syllabus may be a PDF or a Word document, since instructors hand out both.
+A scan cannot be imported whichever it arrives as: there is no OCR, and adding
+one would be a new decision. Rows are taken as the table states them, so a single
 20% row whose notes read "5% each" stays one assignment rather than becoming
 four the table never listed.
 

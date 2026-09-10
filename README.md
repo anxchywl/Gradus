@@ -20,7 +20,7 @@ feature never signs anyone in and holds no account of its own.
   optional letter chosen by hand
 - Add, edit and delete assignments inside a course, each with a weight, a
   maximum score and a score that stays empty until the work is marked
-- Fill a course in from its syllabus PDF: code, title, credits and the whole
+- Fill a course in from its syllabus, PDF or Word: code, title, credits and the whole
   assessment table, proposed for the student to confirm
 - See a course grade computed from marked work only, with the unallocated
   weight and the maximum still reachable named rather than assumed

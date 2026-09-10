@@ -5,11 +5,12 @@ import pytest
 from app.domain.syllabus import (
     MAXIMUM_ASSESSMENTS,
     MAXIMUM_NAME_LENGTH,
+    DocumentKind,
     DocumentTooLargeError,
     DocumentUnreadableError,
     SyllabusDraft,
     build_draft,
-    require_pdf,
+    require_supported_document,
     sanitize_text,
 )
 
@@ -94,13 +95,21 @@ def test_weights_over_budget_are_reported_rather_than_scaled() -> None:
     assert len(draft.assessments) == 2
 
 
-def test_a_file_that_is_not_a_pdf_is_refused() -> None:
+def test_a_file_of_an_unsupported_type_is_refused() -> None:
     with pytest.raises(DocumentUnreadableError):
-        require_pdf(b"PK\x03\x04 a zip pretending", maximum_bytes=1_000)
+        require_supported_document(b"GIF89a not a document", maximum_bytes=1_000)
     with pytest.raises(DocumentUnreadableError):
-        require_pdf(b"", maximum_bytes=1_000)
+        require_supported_document(b"", maximum_bytes=1_000)
+
+
+def test_the_kind_comes_from_the_bytes_not_from_what_was_claimed() -> None:
+    _, pdf = require_supported_document(b"%PDF-1.4 body", maximum_bytes=1_000)
+    _, docx = require_supported_document(b"PK\x03\x04 zip body", maximum_bytes=1_000)
+
+    assert pdf is DocumentKind.pdf
+    assert docx is DocumentKind.docx
 
 
 def test_an_oversized_file_is_refused_before_it_is_parsed() -> None:
     with pytest.raises(DocumentTooLargeError):
-        require_pdf(b"%PDF-" + b"x" * 5_000, maximum_bytes=1_000)
+        require_supported_document(b"%PDF-" + b"x" * 5_000, maximum_bytes=1_000)

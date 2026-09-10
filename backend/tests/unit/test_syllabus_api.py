@@ -13,10 +13,10 @@ from app.domain.syllabus import (
     SyllabusDraft,
 )
 from app.infrastructure.guards import InMemoryDraftStore, InMemoryRateLimiter
-from app.infrastructure.syllabus.documents import PdfDocumentReader
+from app.infrastructure.syllabus.documents import SyllabusDocumentReader
 from app.main import create_app
 from tests.conftest import settings
-from tests.syllabus_fixtures import text_pdf
+from tests.syllabus_fixtures import syllabus_docx, text_pdf
 
 PATH = "/api/v1/syllabus-extractions"
 KEY = "an-idempotency-key-0001"
@@ -68,7 +68,7 @@ def _client(
     with TestClient(application, raise_server_exceptions=False) as client:
         client.app.state.syllabus_service = (  # type: ignore[attr-defined]
             SyllabusService(
-                reader=PdfDocumentReader(
+                reader=SyllabusDocumentReader(
                     maximum_pages=60,
                     maximum_characters=120_000,
                 ),
@@ -161,15 +161,29 @@ def test_a_repeated_key_is_not_paid_for_twice(
     assert extractor.calls == 1
 
 
-def test_a_file_that_is_not_a_pdf_is_refused(
+def test_a_file_of_an_unsupported_type_is_refused(
     client: TestClient,
     extractor: FakeExtractor,
 ) -> None:
     response = _upload(client, content=b"MZ\x90\x00 an executable")
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "document_not_a_pdf"
+    assert response.json()["error"]["code"] == "document_unsupported_type"
     assert extractor.calls == 0
+
+
+def test_a_word_document_is_accepted(
+    client: TestClient,
+    extractor: FakeExtractor,
+) -> None:
+    content = syllabus_docx(
+        ["MATH 162 Calculus II"], rows=[("Midterm", "40%"), ("Final", "60%")]
+    )
+
+    response = _upload(client, content=content)
+
+    assert response.status_code == 200
+    assert extractor.calls == 1
 
 
 def test_an_oversized_upload_never_reaches_the_reader(

@@ -10,9 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.config import Settings, SyllabusProvider
+from app.domain.syllabus import require_supported_document
 from app.infrastructure.syllabus import create_model_client
 from app.infrastructure.syllabus.clients import StructuredModelClient
-from app.infrastructure.syllabus.documents import PdfDocumentReader
+from app.infrastructure.syllabus.documents import SyllabusDocumentReader
 from app.infrastructure.syllabus.extractor import (
     SYSTEM_PROMPT,
     ExtractedSyllabus,
@@ -63,11 +64,14 @@ def load_cases(only: str | None) -> tuple[list[Case], list[str]]:
 async def run_case(
     case: Case,
     *,
-    reader: PdfDocumentReader,
+    reader: SyllabusDocumentReader,
     client: StructuredModelClient,
     maximum_output_tokens: int,
 ) -> CaseScore | None:
-    text = await reader.read(case.document.read_bytes())
+    content, kind = require_supported_document(
+        case.document.read_bytes(), maximum_bytes=64 * 1_024 * 1_024
+    )
+    text = await reader.read(content, kind)
     started = time.monotonic()
     try:
         result = await client.complete(
@@ -177,7 +181,7 @@ async def main() -> None:
         SYLLABUS_BASE_URL=arguments.base_url,
     )
     client = create_model_client(settings)
-    reader = PdfDocumentReader(
+    reader = SyllabusDocumentReader(
         maximum_pages=settings.syllabus_document_max_pages,
         maximum_characters=settings.syllabus_document_max_characters,
     )

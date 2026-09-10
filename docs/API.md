@@ -11,16 +11,21 @@ because whether anything is stored server-side is still open.
 
 | Endpoint | Authentication | Purpose |
 |---|---|---|
-| `POST /api/v1/syllabus-extractions` | Bearer | Read a syllabus PDF into a course draft |
+| `POST /api/v1/syllabus-extractions` | Bearer | Read a syllabus PDF or Word document into a course draft |
 | `GET /health/live` | No | Process liveness |
 | `GET /health/ready` | No | Service readiness; the service has no dependency to wait on |
 
 ### Syllabus extraction
 
-`POST /api/v1/syllabus-extractions` takes the PDF as the request body with
-`Content-Type: application/pdf` - one file, so there is no form parser in the
-path - and requires an `Idempotency-Key`, because the call costs money and a
-retry must be recognisable as one. It stores nothing.
+`POST /api/v1/syllabus-extractions` takes the document as the request body -
+one file, so there is no form parser in the path - and requires an
+`Idempotency-Key`, because the call costs money and a retry must be recognisable
+as one. It stores nothing.
+
+`Content-Type` is `application/pdf` or
+`application/vnd.openxmlformats-officedocument.wordprocessingml.document`, but
+the header is a claim: the type is decided by the leading bytes, `%PDF-` or a
+zip header, and a mismatch between the two is resolved in favour of the bytes.
 
 ```json
 {"data": {"code": "MATH 273", "title": "Linear Algebra with Applications",
@@ -36,11 +41,11 @@ systems.
 
 | Code | Status | Means |
 |---|---|---|
-| `document_not_a_pdf` | 422 | The bytes do not begin `%PDF-` |
+| `document_unsupported_type` | 422 | The bytes are neither a PDF nor a Word document |
 | `document_empty` | 422 | Nothing was uploaded |
-| `document_unreadable` | 422 | The bytes are a PDF header and not much else |
+| `document_unreadable` | 422 | The header is right and the rest is not a document |
 | `document_encrypted` | 422 | Password protected |
-| `document_has_no_text` | 422 | No text layer; a scan, and there is no OCR |
+| `document_has_no_text` | 422 | Nothing to read; a scanned PDF, and there is no OCR |
 | `document_too_large` | 413 | Larger than `SYLLABUS_DOCUMENT_MAX_BYTES` |
 | `idempotency_key_invalid` | 422 | Header missing or malformed |
 | `rate_limited` | 429 | Past the per-account allowance |

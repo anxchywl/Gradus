@@ -6,7 +6,7 @@ from app.domain.syllabus import (
     RateLimiter,
     SyllabusDraft,
     SyllabusExtractor,
-    require_pdf,
+    require_supported_document,
 )
 
 
@@ -43,9 +43,11 @@ class SyllabusService:
         # the cheap checks come first: a limit that only applies after the
         # expensive call has already been paid for protects nothing
         await self._limiter.claim(subject)
-        require_pdf(content, maximum_bytes=self._maximum_document_bytes)
+        content, kind = require_supported_document(
+            content, maximum_bytes=self._maximum_document_bytes
+        )
 
-        text = await self._reader.read(content)
+        text = await self._reader.read(content, kind)
         draft = await self._extractor.extract(text)
         await self._drafts.remember(scoped_key, draft)
         return draft

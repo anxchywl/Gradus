@@ -246,7 +246,7 @@ the tests named in it are the evidence.
 | 21 | Per-account rate limit on syllabus extraction, failing closed | `app/infrastructure/guards.py` | `test_guards.py::test_a_caller_past_the_allowance_is_refused`, `::test_a_limiter_that_cannot_decide_refuses_rather_than_allows` | Implemented, in process only |
 | 22 | Backups and restore | - | - | **Not built**, and nothing is stored |
 | 23 | Uploaded document capped by size, pages and extracted characters | `app/domain/syllabus.py`, `app/infrastructure/syllabus/documents.py` | `test_syllabus_domain.py`, `test_syllabus_documents.py::test_extracted_text_is_capped` | Implemented |
-| 24 | A document is identified by its bytes, not its declared type | `app/domain/syllabus.py` | `test_syllabus_api.py::test_a_file_that_is_not_a_pdf_is_refused` | Implemented |
+| 24 | A document is identified by its bytes, not its declared type | `app/domain/syllabus.py` | `test_syllabus_api.py::test_a_file_of_an_unsupported_type_is_refused` | Implemented |
 | 25 | Extracted text stripped of controls, bidi overrides and zero-width characters, on both sides | `app/domain/syllabus.py`, `gradus_feature/lib/src/domain/syllabus.dart` | `test_syllabus_domain.py`, `syllabus_test.dart` | Implemented |
 | 26 | Model output is data: no tools on the call, and nothing it returns names an id, a key or an endpoint | `app/infrastructure/syllabus/extractor.py` | `test_syllabus_extractor.py::test_the_document_is_quoted_rather_than_handed_over_as_instructions`, `::test_hostile_model_output_is_cleaned_before_it_leaves` | Implemented |
 | 27 | A repeated upload is not paid for twice | `app/infrastructure/guards.py` | `test_syllabus_api.py::test_a_repeated_key_is_not_paid_for_twice` | Implemented, in process only |
@@ -310,13 +310,14 @@ Read this before assuming the service is deployable.
   course. A partial fill is a normal outcome, the course title is the field most
   often wrong, and the assessment table is the part that reads most reliably.
   Nothing is applied without the student confirming it.
-- **Extraction is measured on four documents, which is not many.** The
+- **Extraction is measured on five documents, which is not many.** The
   extractor talks to a `StructuredModelClient`, and there are two adapters
   behind it: Anthropic, and one covering every OpenAI-compatible endpoint, which
   is how OpenAI, Gemini and DeepSeek are reached. The default is
   `gemini-3.1-flash-lite` on the second one, and it has now been run:
-  `backend/evals/` scores every field and every assessment row exact across four
-  documents, with no variation between repeats. The
+  `backend/evals/` scores every field and every assessment row exact across five
+  documents, one of them a Word document that scores the same as its own PDF
+  conversion. The
   compatibility endpoint carries a schema of almost entirely optional fields
   intact, which was the thing in doubt.
 
@@ -324,8 +325,9 @@ Read this before assuming the service is deployable.
   The sample is two templates - one institutional form seen in three terms, and
   one free-form document - so it shows the right assessment table being found
   next to a letter-grade table and a weekly schedule, and nothing about a layout
-  no one has tried yet. A scanned syllabus still cannot be read at all, and
-  neither can a Word document, which is a format instructors do hand out.
+  no one has tried yet. A scanned syllabus still cannot be read at all. A page
+  cap bounds a PDF, but a Word document has no pages until something lays it
+  out, so there the character cap is the only bound.
 
   The failure stays safe rather than silent: a model that answers off-schema
   produces nothing to parse, and the endpoint returns `extraction_unavailable`

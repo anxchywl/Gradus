@@ -103,11 +103,41 @@ void main() {
         isA<SyllabusImportFailure>().having(
           (failure) => failure.problem,
           'problem',
-          SyllabusImportProblem.notAPdf,
+          SyllabusImportProblem.unsupportedType,
         ),
       ),
     );
     expect(called, isFalse);
+  });
+
+  test('a word document is sent, and declares itself as one', () async {
+    String? sentType;
+    final importer = importerFor(
+      MockClient((request) async {
+        sentType = request.headers['content-type'];
+        return http.Response(body({'code': 'MATH 162'}), 200);
+      }),
+      picked: [0x50, 0x4b, 0x03, 0x04, ...utf8.encode('a docx')],
+    );
+
+    await importer.importFromFile();
+
+    expect(sentType, contains('wordprocessingml.document'));
+  });
+
+  test('a pdf still declares itself as a pdf', () async {
+    String? sentType;
+    final importer = importerFor(
+      MockClient((request) async {
+        sentType = request.headers['content-type'];
+        return http.Response(body({'code': 'MATH 162'}), 200);
+      }),
+      picked: utf8.encode('%PDF-1.4 a syllabus'),
+    );
+
+    await importer.importFromFile();
+
+    expect(sentType, 'application/pdf');
   });
 
   test('an oversized file never reaches the network', () async {
@@ -192,7 +222,7 @@ void main() {
 
   test('each refusal keeps its own meaning', () async {
     final cases = <String, SyllabusImportProblem>{
-      'document_not_a_pdf': SyllabusImportProblem.notAPdf,
+      'document_unsupported_type': SyllabusImportProblem.unsupportedType,
       'document_encrypted': SyllabusImportProblem.encrypted,
       'document_has_no_text': SyllabusImportProblem.noText,
       'extraction_unavailable': SyllabusImportProblem.unavailable,

@@ -14,7 +14,7 @@ from app.infrastructure.syllabus.clients import (
     StructuredModelClient,
     profile_for,
 )
-from app.infrastructure.syllabus.documents import PdfDocumentReader
+from app.infrastructure.syllabus.documents import SyllabusDocumentReader
 from app.infrastructure.syllabus.extractor import ModelSyllabusExtractor
 
 __all__ = ["create_model_client", "create_syllabus_service"]
@@ -54,7 +54,7 @@ def create_syllabus_service(
 
     client = create_model_client(settings)
     service = SyllabusService(
-        reader=PdfDocumentReader(
+        reader=SyllabusDocumentReader(
             maximum_pages=settings.syllabus_document_max_pages,
             maximum_characters=settings.syllabus_document_max_characters,
         ),

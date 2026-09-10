@@ -42,8 +42,9 @@ class HttpSyllabusImporter implements SyllabusImporter {
       throw const SyllabusImportFailure(SyllabusImportProblem.tooLarge);
     }
     // checked here as well so an obvious mistake costs no request at all
-    if (!_startsWithPdfMagic(bytes)) {
-      throw const SyllabusImportFailure(SyllabusImportProblem.notAPdf);
+    final contentType = _contentTypeOf(bytes);
+    if (contentType == null) {
+      throw const SyllabusImportFailure(SyllabusImportProblem.unsupportedType);
     }
 
     final http.Response response;
@@ -52,7 +53,7 @@ class HttpSyllabusImporter implements SyllabusImporter {
         baseUri.resolve('api/v1/syllabus-extractions'),
         headers: {
           'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/pdf',
+          'Content-Type': contentType,
           'Idempotency-Key': _idempotencyKey(),
         },
         body: bytes,
@@ -76,8 +77,19 @@ class HttpSyllabusImporter implements SyllabusImporter {
     return base64Url.encode(bytes).replaceAll('=', '');
   }
 
-  bool _startsWithPdfMagic(List<int> bytes) {
-    const magic = [0x25, 0x50, 0x44, 0x46, 0x2d];
+  // the extension the picker filtered on is a claim about the file; the bytes
+  // are what the server will judge it by, so they decide here too
+  String? _contentTypeOf(List<int> bytes) {
+    const pdf = [0x25, 0x50, 0x44, 0x46, 0x2d];
+    const zip = [0x50, 0x4b, 0x03, 0x04];
+    if (_startsWith(bytes, pdf)) return 'application/pdf';
+    if (_startsWith(bytes, zip)) {
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    }
+    return null;
+  }
+
+  bool _startsWith(List<int> bytes, List<int> magic) {
     if (bytes.length < magic.length) return false;
     for (var index = 0; index < magic.length; index++) {
       if (bytes[index] != magic[index]) return false;
@@ -90,7 +102,7 @@ class HttpSyllabusImporter implements SyllabusImporter {
     if (response.statusCode == 413) return SyllabusImportProblem.tooLarge;
     final code = _errorCodeOf(response.body);
     return switch (code) {
-      'document_not_a_pdf' => SyllabusImportProblem.notAPdf,
+      'document_unsupported_type' => SyllabusImportProblem.unsupportedType,
       'document_too_large' => SyllabusImportProblem.tooLarge,
       'document_encrypted' => SyllabusImportProblem.encrypted,
       'document_has_no_text' => SyllabusImportProblem.noText,
@@ -178,7 +190,7 @@ class HttpSyllabusImporter implements SyllabusImporter {
 Future<List<int>?> _pickWithPlatformPicker() async {
   final result = await FilePicker.platform.pickFiles(
     type: FileType.custom,
-    allowedExtensions: const ['pdf'],
+    allowedExtensions: const ['pdf', 'docx'],
     withData: true,
   );
   final bytes = result?.files.singleOrNull?.bytes;

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Protocol
 
 from app.domain.errors import AppError, ValidationError
@@ -133,7 +134,19 @@ class DocumentUnreadableError(ValidationError):
     code = "document_unreadable"
 
 
-def require_pdf(content: bytes, *, maximum_bytes: int) -> bytes:
+class DocumentKind(StrEnum):
+    pdf = "pdf"
+    docx = "docx"
+
+
+# a password-protected docx is an ole compound file rather than a zip, so it
+# never reaches the reader and is refused here as an unsupported type
+_MAGIC = ((b"%PDF-", DocumentKind.pdf), (b"PK\x03\x04", DocumentKind.docx))
+
+
+def require_supported_document(
+    content: bytes, *, maximum_bytes: int
+) -> tuple[bytes, DocumentKind]:
     if not content:
         raise DocumentUnreadableError(
             "document_empty",
@@ -145,12 +158,13 @@ def require_pdf(content: bytes, *, maximum_bytes: int) -> bytes:
             "The file is larger than this service accepts.",
         )
     # the declared content type is a claim the caller makes about its own upload
-    if not content.startswith(b"%PDF-"):
-        raise DocumentUnreadableError(
-            "document_not_a_pdf",
-            "The file is not a PDF.",
-        )
-    return content
+    for magic, kind in _MAGIC:
+        if content.startswith(magic):
+            return content, kind
+    raise DocumentUnreadableError(
+        "document_unsupported_type",
+        "The file is not a PDF or a Word document.",
+    )
 
 
 class DocumentEncryptedError(ValidationError):
@@ -172,7 +186,7 @@ class RateLimitedError(AppError):
 
 
 class DocumentReader(Protocol):
-    async def read(self, content: bytes) -> str: ...
+    async def read(self, content: bytes, kind: DocumentKind) -> str: ...
 
 
 class SyllabusExtractor(Protocol):

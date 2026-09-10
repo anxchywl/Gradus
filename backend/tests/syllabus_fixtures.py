@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 
+from docx import Document
 from pypdf import PdfWriter
 
 
@@ -53,3 +54,25 @@ def encrypted_pdf() -> bytes:
     buffer = io.BytesIO()
     writer.write(buffer)
     return buffer.getvalue()
+
+
+# a syllabus states its weights in a table, so a fixture without one would not
+# exercise the part of the reader that matters
+def syllabus_docx(
+    paragraphs: list[str], rows: list[tuple[str, str]] | None = None
+) -> bytes:
+    document = Document()
+    for text in paragraphs:
+        document.add_paragraph(text)
+    if rows:
+        table = document.add_table(rows=len(rows), cols=2)
+        for index, (name, weight) in enumerate(rows):
+            table.rows[index].cells[0].text = name
+            table.rows[index].cells[1].text = weight
+    buffer = io.BytesIO()
+    document.save(buffer)
+    return buffer.getvalue()
+
+
+def empty_docx() -> bytes:
+    return syllabus_docx([])

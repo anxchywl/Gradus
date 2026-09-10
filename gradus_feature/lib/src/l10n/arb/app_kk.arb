@@ -83,7 +83,7 @@
   "importedWeightOverBudget": "Бұл 100%-дан асады. Сақтамас бұрын жазбаны жойыңыз.",
   "importRemoveEntry": "{name} жою",
   "importNothingFound": "Бұл силлабустан ештеңе оқылмады",
-  "importNotAPdf": "Бұл файл PDF емес",
+  "importUnsupportedType": "PDF немесе Word файлы қажет",
   "importTooLarge": "Бұл файл тым үлкен",
   "importEncrypted": "Бұл файл құпия сөзбен қорғалған",
   "importNoText": "Бұл файлда оқитын мәтін жоқ; сканды импорттау мүмкін емес",

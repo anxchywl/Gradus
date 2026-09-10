@@ -83,7 +83,7 @@
   "importedWeightOverBudget": "Это больше 100%. Удалите запись перед сохранением.",
   "importRemoveEntry": "Удалить {name}",
   "importNothingFound": "Из этого силлабуса ничего не удалось прочитать",
-  "importNotAPdf": "Этот файл не PDF",
+  "importUnsupportedType": "Нужен файл PDF или Word",
   "importTooLarge": "Этот файл слишком большой",
   "importEncrypted": "Этот файл защищён паролем",
   "importNoText": "В этом файле нет текста; скан импортировать нельзя",

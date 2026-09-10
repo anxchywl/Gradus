@@ -314,7 +314,7 @@ class _CourseFormState extends State<CourseForm> {
     GradusStrings strings,
     SyllabusImportProblem problem,
   ) => switch (problem) {
-    SyllabusImportProblem.notAPdf => strings.importNotAPdf,
+    SyllabusImportProblem.unsupportedType => strings.importUnsupportedType,
     SyllabusImportProblem.tooLarge => strings.importTooLarge,
     SyllabusImportProblem.encrypted => strings.importEncrypted,
     SyllabusImportProblem.noText => strings.importNoText,

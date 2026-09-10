@@ -306,7 +306,7 @@
     }
   },
   "importNothingFound": "Nothing could be read from that syllabus",
-  "importNotAPdf": "That file is not a PDF",
+  "importUnsupportedType": "That file must be a PDF or a Word document",
   "importTooLarge": "That file is too large",
   "importEncrypted": "That file is password protected",
   "importNoText": "That file has no text to read; a scan cannot be imported",
