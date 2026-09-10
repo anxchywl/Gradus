@@ -129,3 +129,7 @@ Each document owns its subject once; nothing is repeated.
   credential, but no release has gone out.
 
 It is a foundation, and it says so.
+
+## License
+
+Gradus is licensed under the [MIT License](LICENSE).
