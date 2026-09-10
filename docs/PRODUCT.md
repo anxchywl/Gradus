@@ -122,15 +122,12 @@ it is displayed.
 
 Each of these changes what gets built. None should be guessed.
 
-1. **Which grade scale.** `FourPointScale` in `gradus_feature/lib/src/domain/grade.dart`
-   is an example so the domain is testable. The real letter-to-points table, and
-   whether it varies by faculty or intake year, is an institutional rule. Its
-   percentage cutoffs (`GradeScale.bands`) are an example on exactly the same
-   terms, and they are what turns an assignment average into a letter - so every
-   letter derived from marked work inherits that caveat, and so does the GPA
-   computed from it. `GradeScale` is an interface for this reason: a scale that
-   declines to map percentages returns no letter, and the feature shows the
-   percentage alone rather than claiming a grade.
+1. **Which administrative grades to carry.** The scale itself is settled - see
+   below - but NU also issues `AU`, `I`, `IP`, `W` and `AW`, and only `P` is
+   modelled. Each of the others is excluded from the average, which the scale
+   can already express, but `AU` and `I` are excluded from *attempted* credit
+   too, and nothing here carries that distinction. Adding them without it would
+   show a withdrawn or audited course among the credits a student attempted.
 2. **Where course data comes from.** Student-entered, read from a syllabus,
    imported from the registrar, pulled from Moodle, or some combination. This
    decides whether a backend is needed at all, and whether grades are ever
@@ -176,6 +173,31 @@ Each of these changes what gets built. None should be guessed.
 7. **How a host would mount this** - a tab or a route - which decides whether
    the feature keeps its own navigation. The standalone prototype does not have
    to answer this, but the answer changes the presentation layer when it comes.
+
+## The grade scale
+
+Settled, and taken from NU rather than invented. The quality points are the
+Common Grading Scale the registrar publishes for all undergraduate programs:
+`A` 4.00, `A-` 3.67, `B+` 3.33, `B` 3.00, `B-` 2.67, `C+` 2.33, `C` 2.00,
+`C-` 1.67, `D+` 1.33, `D` 1.00, `F` 0.00. There is no `A+`, `D-`, `F+` or `F-`,
+and the scale refuses those letters rather than inventing a value for them.
+
+The percentage cutoffs are the ones the Course Specification Form prints, and
+every syllabus in `backend/evals/` agrees on them across three terms and two
+schools: 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, and everything below is `F`.
+They open on multiples of five, which a test pins.
+
+Two things about that are worth stating rather than assuming. The cutoffs are
+faculty discretion, not a university-wide rule - NU's own wording is "as
+determined by the faculty" - so a course whose syllabus prints a different table
+is entitled to, and the student would have to correct the letter by hand. And a
+`P` earns no quality points but is not a zero: it leaves the average untouched
+rather than dragging it down, because a course that does not weigh on the GPA is
+absent from the divisor as well as the total.
+
+`GradeScale` stays an interface. A scale that declines to map percentages
+returns no letter, and the feature then shows the percentage alone rather than
+claiming a grade it cannot justify.
 
 ## What is deliberately not here
 

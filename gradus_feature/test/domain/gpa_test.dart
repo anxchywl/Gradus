@@ -262,11 +262,50 @@ void main() {
     });
 
     test('turns a percentage into the letter its band earns', () {
+      expect(_scale.forPercentage(100)!.letter, 'A');
       expect(_scale.forPercentage(95)!.letter, 'A');
-      expect(_scale.forPercentage(90)!.letter, 'A');
-      expect(_scale.forPercentage(89.9)!.letter, 'A-');
-      expect(_scale.forPercentage(70)!.letter, 'C');
+      expect(_scale.forPercentage(94.9)!.letter, 'A-');
+      expect(_scale.forPercentage(90)!.letter, 'A-');
+      expect(_scale.forPercentage(65)!.letter, 'C');
+      expect(_scale.forPercentage(50)!.letter, 'D');
+      expect(_scale.forPercentage(49.9)!.letter, 'F');
       expect(_scale.forPercentage(0)!.letter, 'F');
+    });
+
+    test('every band opens on a multiple of five, as the form prints them', () {
+      for (final band in _scale.bands) {
+        expect(band.minimumPercentage % 5, 0);
+      }
+    });
+
+    test('a band exists for every letter that earns points', () {
+      final banded = _scale.bands.map((band) => band.grade.letter).toSet();
+      final earning = _scale.grades
+          .where((grade) => grade.countsTowardGpa)
+          .map((grade) => grade.letter)
+          .toSet();
+
+      // a letter the average can award but no percentage reaches would be
+      // unobtainable from marked work
+      expect(banded, earning);
+    });
+
+    test('the points are the ones the registrar publishes', () {
+      expect(_scale.byLetter('A').qualityPoints, 4.00);
+      expect(_scale.byLetter('A-').qualityPoints, 3.67);
+      expect(_scale.byLetter('B').qualityPoints, 3.00);
+      expect(_scale.byLetter('C-').qualityPoints, 1.67);
+      expect(_scale.byLetter('F').qualityPoints, 0.00);
+    });
+
+    test('there is no A+, D- or F+, which nu does not award', () {
+      for (final letter in ['A+', 'D-', 'F+', 'F-']) {
+        expect(
+          () => _scale.byLetter(letter),
+          throwsA(isA<UnknownGradeFailure>()),
+          reason: letter,
+        );
+      }
     });
   });
 }

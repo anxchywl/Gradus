@@ -31,7 +31,8 @@ class GradeBand {
   final double minimumPercentage;
 }
 
-// an interface because neither table is settled, see docs/PRODUCT.md
+// an interface because a second institution would bring a second table, and
+// because a scale that declines to map percentages must stay expressible
 abstract interface class GradeScale {
   String get id;
 
@@ -45,7 +46,9 @@ abstract interface class GradeScale {
   Grade? forPercentage(double percentage);
 }
 
-// an example so the domain is testable, not a ruling on any real scale
+// nu's common grading scale: the points are the registrar's, and the bands are
+// the ones the course specification form prints, agreeing across every syllabus
+// in backend/evals. see docs/PRODUCT.md for what is still faculty discretion
 class FourPointScale implements GradeScale {
   const FourPointScale();
 
@@ -72,15 +75,15 @@ class FourPointScale implements GradeScale {
   List<GradeBand> get bands => const [
     GradeBand(
       grade: Grade(letter: 'A', qualityPoints: 4.0),
-      minimumPercentage: 90,
+      minimumPercentage: 95,
     ),
     GradeBand(
       grade: Grade(letter: 'A-', qualityPoints: 3.67),
-      minimumPercentage: 87,
+      minimumPercentage: 90,
     ),
     GradeBand(
       grade: Grade(letter: 'B+', qualityPoints: 3.33),
-      minimumPercentage: 83,
+      minimumPercentage: 85,
     ),
     GradeBand(
       grade: Grade(letter: 'B', qualityPoints: 3.0),
@@ -88,27 +91,27 @@ class FourPointScale implements GradeScale {
     ),
     GradeBand(
       grade: Grade(letter: 'B-', qualityPoints: 2.67),
-      minimumPercentage: 77,
+      minimumPercentage: 75,
     ),
     GradeBand(
       grade: Grade(letter: 'C+', qualityPoints: 2.33),
-      minimumPercentage: 73,
-    ),
-    GradeBand(
-      grade: Grade(letter: 'C', qualityPoints: 2.0),
       minimumPercentage: 70,
     ),
     GradeBand(
+      grade: Grade(letter: 'C', qualityPoints: 2.0),
+      minimumPercentage: 65,
+    ),
+    GradeBand(
       grade: Grade(letter: 'C-', qualityPoints: 1.67),
-      minimumPercentage: 67,
+      minimumPercentage: 60,
     ),
     GradeBand(
       grade: Grade(letter: 'D+', qualityPoints: 1.33),
-      minimumPercentage: 63,
+      minimumPercentage: 55,
     ),
     GradeBand(
       grade: Grade(letter: 'D', qualityPoints: 1.0),
-      minimumPercentage: 60,
+      minimumPercentage: 50,
     ),
     GradeBand(
       grade: Grade(letter: 'F', qualityPoints: 0.0),

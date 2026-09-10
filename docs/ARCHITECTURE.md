@@ -275,10 +275,11 @@ forgets one should fail closed rather than open with a known value.
 Read this before assuming the service is deployable.
 
 - **The product is only partly specified.** `PRODUCT.md` records what is built
-  and what is still open. The grade scale in `FourPointScale` is an example so
-  the domain is testable, not an institutional ruling, and its percentage
-  cutoffs are an example on exactly the same terms. A letter derived from a
-  percentage inherits that, and so does the GPA computed from it.
+  and what is still open. The grade scale is no longer among the open parts: the
+  points are the registrar's published table and the cutoffs are the ones every
+  syllabus in `backend/evals/` prints. What remains is that those cutoffs are
+  faculty discretion rather than a university rule, so a course may print its
+  own, and that only `P` of NU's administrative grades is modelled.
 - **The host authentication resolver has never verified a real token.** It
   checks a JWT's signature, issuer, audience and expiry, and rejects everything
   until an issuer and a key are configured. What has not happened is an exchange

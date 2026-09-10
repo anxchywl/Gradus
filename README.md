@@ -121,8 +121,10 @@ Each document owns its subject once; nothing is repeated.
 - A syllabus is the one thing that leaves the device: the PDF is uploaded and
   its text is read by a model on the server. Nothing is stored, and the student
   is told before the upload.
-- The four-point grade scale in the domain is an example so the rules are
-  testable, not an institutional decision. So are its percentage cutoffs.
+- The grade scale is NU's: the registrar's published quality points, and the
+  percentage cutoffs the Course Specification Form prints. Those cutoffs are
+  faculty discretion, so a course may state its own and the student would have
+  to correct the letter by hand.
 - Nothing is deployed. `deploy/` refuses to ship a development mechanism or a
   credential, but no release has gone out.
 

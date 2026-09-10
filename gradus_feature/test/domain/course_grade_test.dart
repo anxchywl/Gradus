@@ -190,7 +190,7 @@ void main() {
       expect(resolved.earnedPercentage, closeTo(84, 1e-9));
       expect(resolved.isSetupComplete, isTrue);
       expect(resolved.unallocatedWeight, 0);
-      expect(resolved.grade!.letter, 'B+');
+      expect(resolved.grade!.letter, 'B');
       expect(resolved.source, GradeSource.assignments);
     });
 
@@ -254,7 +254,7 @@ void main() {
         _scale,
       );
 
-      expect(resolved.grade!.letter, 'D+');
+      expect(resolved.grade!.letter, 'C');
       expect(resolved.source, GradeSource.assignments);
     });
 

@@ -264,7 +264,7 @@ void main() {
     );
     // the course letter, and the same letter on the assignment that set it
     expect(
-      find.text('C'),
+      find.text('C+'),
       findsNWidgets(2),
       reason: '70% is a C on this scale',
     );
@@ -327,7 +327,7 @@ void main() {
     // where a grade came from is visible from the assignments listed below
     expect(find.text('From assignments'), findsNothing);
     // the course letter, and the letter the marked assignment earned
-    expect(find.text('A'), findsNWidgets(2));
+    expect(find.text('A-'), findsNWidgets(2));
   });
 
   testWidgets('an incomplete grading setup is named on the detail', (
