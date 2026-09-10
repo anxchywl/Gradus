@@ -32,6 +32,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       flutter: ${{ steps.filter.outputs.flutter }}
+      deploy: ${{ steps.filter.outputs.deploy }}
       ci: ${{ steps.filter.outputs.ci }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -45,6 +46,10 @@ jobs:
               - 'app_ui/**'
               - 'gradus_feature/**'
               - 'gradus_app/**'
+            deploy:
+              - 'deploy/**'
+              - 'docker/**'
+              - 'backend/Dockerfile'
             ci:
               - '.github/workflows/**'
               - 'scripts/**'
@@ -174,6 +179,35 @@ jobs:
       - name: Build debug artifact
         working-directory: gradus_app
         run: flutter build apk --debug
+
+  deployment-validation:
+    name: Deployment configuration
+    needs: changes
+    if: |
+      needs.changes.outputs.deploy == 'true' ||
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.ci == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # the deployment is shell, and shell fails quietly; this is the only
+      # check it gets until the day it runs for real
+      - name: Check the deployment scripts
+        run: docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:v0.11.0 deploy/*.sh
+
+      # both shapes the host can take, from the example the server copies
+      - name: Validate the production compose files
+        run: |
+          docker compose --env-file deploy/production.env.example \
+            -f docker/docker-compose.production.yml config --quiet
+          docker compose --env-file deploy/production.env.example \
+            -f docker/docker-compose.production.yml \
+            -f docker/docker-compose.shared-host.yml config --quiet
+
+      - name: Build the image a deployment would build
+        run: docker build --file backend/Dockerfile --tag gradus-backend:ci .
 
   security:
     name: Secret and dependency scan

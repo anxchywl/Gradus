@@ -65,7 +65,10 @@ def test_no_workflow_enables_standalone_release_access() -> None:
 
 
 def _deployment_workflows() -> list[Path]:
-    return [w for w in _workflows() if "deploy" in w.read_text()]
+    # a workflow that names a github environment is one that ships something.
+    # matching on the word "deploy" also caught the job that only validates
+    # deployment configuration, which ships nothing and pins no revision
+    return [w for w in _workflows() if "environment:" in w.read_text()]
 
 
 def test_deployment_uses_the_tested_revision() -> None:

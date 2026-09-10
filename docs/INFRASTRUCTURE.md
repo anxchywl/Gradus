@@ -210,12 +210,15 @@ written down rather than discovered later.
 
 | Secret or variable | Where | What it is |
 |---|---|---|
-| `DEPLOY_HOST` | secret | the shared host |
-| `DEPLOY_USER` | secret | the account that owns the checkout and may run docker |
+| `SSH_HOST` | secret | the shared host |
+| `SSH_USER` | secret | the account that owns the checkout and may run docker |
+| `SSH_PRIVATE_KEY` | secret | a private key whose public half is in that account's `authorized_keys` |
+| `SSH_KNOWN_HOSTS` | secret | `ssh-keyscan` output for the host, so the key is pinned |
 | `DEPLOY_PATH` | secret | the repository checkout on that host |
-| `DEPLOY_SSH_KEY` | secret | a private key whose public half is in that account's `authorized_keys` |
-| `DEPLOY_KNOWN_HOSTS` | secret | `ssh-keyscan` output for the host, so the key is pinned |
 | `GRADUS_API_DOMAIN` | variable | the name the proxy serves, checked from outside after the deploy |
+
+The first four names match the ones the sibling projects already deploy with, so
+one key and one keyscan serve every repository on that host.
 
 On the host: the repository checked out at `DEPLOY_PATH`, a filled
 `.env.production` beside it, and a Caddy site block for the domain reverse
@@ -236,9 +239,9 @@ host key, or a missing proxy network. A failed deployment restores the
 previous image.
 
 The proxy needs a site block for `GRADUS_API_DOMAIN` reverse-proxying
-`gradus-backend-1:8000`; the one for `gradus.anxchywl.dev` lives in the wished
-repository's `infra/caddy/Caddyfile.production` beside the blocks for the other
-projects on that host.
+`gradus-backend-1:8000`. The proxy that owns 80 and 443 on that host is the one
+the wished project runs, so the block belongs in that repository's
+`infra/caddy/Caddyfile.production`, beside the blocks it already serves.
 
 ## Not built yet
 
