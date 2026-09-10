@@ -1,21 +1,28 @@
 # Agents
 
 Rules for anyone writing code in this repository, human or model. They are not
-suggestions: a change that breaks one is wrong even if it works.
+suggestions: a change that breaks one is wrong even if it works. Read this file
+first, then the one document that owns the area you are touching.
 
 **Sources of truth:**
 
 - Product behaviour and what is undecided: `docs/PRODUCT.md`
-- Structure, boundaries, limitations and threat model: `docs/ARCHITECTURE.md`
-- Controls and how each is verified: `docs/SECURITY.md`
+- Structure, layers, security boundaries, the control inventory, limitations and
+  the threat model: `docs/ARCHITECTURE.md`
 - Endpoints and wire shapes: `docs/API.md`
-- Setup, checks, builds and deployment: `docs/INFRASTRUCTURE.md`
+- Setup, checks, secrets, builds and deployment: `docs/INFRASTRUCTURE.md`
 - This file: coding rules
+
+Each document owns its subject once. If a change makes one of them wrong, fix it
+in the same commit rather than adding the correction somewhere else.
+
+Before reporting any change complete, run `./scripts/verify.sh` and report its
+actual result. It runs everything CI runs.
 
 ## Packages
 
 ```text
-app_ui/       shared presentation kit, forked once; see app_ui/PROVENANCE.md
+app_ui/       shared presentation kit, forked once from the Student Events project
 gradus_feature/  the embeddable feature: domain, application, data, presentation
 gradus_app/      standalone host: MaterialApp, theme, locale, lifecycle
 backend/      FastAPI service
@@ -77,8 +84,9 @@ recoverable from it; it is not a secret once shipped.
 ## Code style
 
 - Follow the existing patterns in the file you are editing.
-- Fully async backend. Sessions are passed as arguments, never created inside a
-  service. ORM models only; no raw SQL beyond the readiness probe.
+- Fully async backend, and blocking work goes off the event loop. There is no
+  database and no ORM: if one is ever added, sessions are passed as arguments
+  and never created inside a service.
 - Prefer early returns over deep nesting; keep functions small.
 - Do not catch broadly; catch the specific failure you can handle, and never
   swallow one silently. A control that fails open is a control that is absent.

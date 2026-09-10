@@ -1,8 +1,8 @@
 name: app_ui
 description: >-
   Shared Flutter UI kit: design tokens, generic widgets, light and dark themes.
-  Forked once from the Student Events project; see PROVENANCE.md before
-  changing anything in it.
+  Forked once from the Student Events project; nothing product-specific belongs
+  in it. See docs/ARCHITECTURE.md before changing anything here.
 
 version: 1.0.0
 
