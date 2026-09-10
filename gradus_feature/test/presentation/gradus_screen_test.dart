@@ -645,11 +645,16 @@ void main() {
           .where((wrap) => wrap.children.isNotEmpty)
           .toList();
 
-      expect(rows, hasLength(5));
+      expect(rows, hasLength(6));
       expect(rows[0].children, hasLength(2), reason: 'A and A-');
       expect(rows[1].children, hasLength(3), reason: 'B+, B and B-');
-      expect(rows[3].children, hasLength(4), reason: 'D+, D, F and P');
-      expect(rows[4].children, hasLength(1), reason: 'Not graded yet');
+      expect(rows[3].children, hasLength(3), reason: 'D+, D and F');
+      expect(
+        rows[4].children,
+        hasLength(6),
+        reason: 'P, AU, I, IP, W and AW keep a line of their own',
+      );
+      expect(rows[5].children, hasLength(1), reason: 'Not graded yet');
     });
 
     testWidgets('the card carries no menu of its own', (tester) async {

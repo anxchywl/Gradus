@@ -421,10 +421,12 @@ class _CourseFormState extends State<CourseForm> {
   );
 
   // the scale reads as the families a student already knows, and a family too
-  // small for a row of its own joins the one above rather than taking a line
+  // small for a row of its own joins the one above rather than taking a line.
+  // the administrative grades keep a line to themselves: they are a different
+  // kind of answer, and folding them onto the end of D reads as one
   List<List<GradusChooserOption<String?>>> _gradeRows(GradusStrings strings) {
     final rows = <List<GradusChooserOption<String?>>>[];
-    for (final grade in widget.scale.grades) {
+    for (final grade in widget.scale.grades.where((g) => g.countsTowardGpa)) {
       final option = GradusChooserOption<String?>(
         value: grade.letter,
         label: grade.letter,
@@ -446,8 +448,14 @@ class _CourseFormState extends State<CourseForm> {
       rows[index - 1].addAll(rows.removeAt(index));
     }
 
+    final administrative = [
+      for (final grade in widget.scale.grades.where((g) => !g.countsTowardGpa))
+        GradusChooserOption<String?>(value: grade.letter, label: grade.letter),
+    ];
+
     return [
       ...rows,
+      if (administrative.isNotEmpty) administrative,
       [GradusChooserOption(value: null, label: strings.gradeNotSet)],
     ];
   }

@@ -5,6 +5,7 @@ class Grade {
     required this.letter,
     required this.qualityPoints,
     this.countsTowardGpa = true,
+    this.countsAsAttemptedCredit = true,
   });
 
   final String letter;
@@ -13,15 +14,26 @@ class Grade {
   // pass/fail and transfer credit sit on a transcript but not in the average
   final bool countsTowardGpa;
 
+  // an audit, an incomplete and a withdrawal are not credit the student
+  // attempted either, so they sit outside both figures rather than only the
+  // average
+  final bool countsAsAttemptedCredit;
+
   @override
   bool operator ==(Object other) =>
       other is Grade &&
       other.letter == letter &&
       other.qualityPoints == qualityPoints &&
-      other.countsTowardGpa == countsTowardGpa;
+      other.countsTowardGpa == countsTowardGpa &&
+      other.countsAsAttemptedCredit == countsAsAttemptedCredit;
 
   @override
-  int get hashCode => Object.hash(letter, qualityPoints, countsTowardGpa);
+  int get hashCode => Object.hash(
+    letter,
+    qualityPoints,
+    countsTowardGpa,
+    countsAsAttemptedCredit,
+  );
 }
 
 class GradeBand {
@@ -68,7 +80,39 @@ class FourPointScale implements GradeScale {
     Grade(letter: 'D+', qualityPoints: 1.33),
     Grade(letter: 'D', qualityPoints: 1.0),
     Grade(letter: 'F', qualityPoints: 0.0),
+    // a pass is credit earned, it just carries no points into the average
     Grade(letter: 'P', qualityPoints: 0.0, countsTowardGpa: false),
+    // nu's administrative grades: no points, and no attempted credit either
+    Grade(
+      letter: 'AU',
+      qualityPoints: 0.0,
+      countsTowardGpa: false,
+      countsAsAttemptedCredit: false,
+    ),
+    Grade(
+      letter: 'I',
+      qualityPoints: 0.0,
+      countsTowardGpa: false,
+      countsAsAttemptedCredit: false,
+    ),
+    Grade(
+      letter: 'IP',
+      qualityPoints: 0.0,
+      countsTowardGpa: false,
+      countsAsAttemptedCredit: false,
+    ),
+    Grade(
+      letter: 'W',
+      qualityPoints: 0.0,
+      countsTowardGpa: false,
+      countsAsAttemptedCredit: false,
+    ),
+    Grade(
+      letter: 'AW',
+      qualityPoints: 0.0,
+      countsTowardGpa: false,
+      countsAsAttemptedCredit: false,
+    ),
   ];
 
   @override

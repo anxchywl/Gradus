@@ -258,6 +258,47 @@ void main() {
       expect(resolved.source, GradeSource.assignments);
     });
 
+    test('a withdrawal stands over work that was marked before it', () {
+      final resolved = calculateCourseGrade(
+        _course(
+          [_assignment(id: 'a', weight: 100, earnedScore: 65)],
+          grade: const Grade(
+            letter: 'W',
+            qualityPoints: 0,
+            countsTowardGpa: false,
+            countsAsAttemptedCredit: false,
+          ),
+        ),
+        _scale,
+      );
+
+      // a student who sat a midterm and then withdrew has a W, not a C+
+      expect(resolved.grade!.letter, 'W');
+      expect(resolved.source, GradeSource.manual);
+      expect(resolved.isAttempted, isFalse);
+      expect(resolved.weighsOnGpa, isFalse);
+    });
+
+    test('a pass stands over the percentage that would have been a letter', () {
+      final resolved = calculateCourseGrade(
+        _course(
+          [_assignment(id: 'a', weight: 100, earnedScore: 88)],
+          grade: const Grade(
+            letter: 'P',
+            qualityPoints: 0,
+            countsTowardGpa: false,
+          ),
+        ),
+        _scale,
+      );
+
+      // a pass/fail course reports a pass whatever the percentage came to
+      expect(resolved.grade!.letter, 'P');
+      expect(resolved.isAttempted, isTrue, reason: 'a pass is still credit');
+      expect(resolved.weighsOnGpa, isFalse);
+      expect(resolved.currentPercentage, 88);
+    });
+
     test('a letter typed by hand stands when nothing is marked', () {
       final resolved = calculateCourseGrade(
         _course([

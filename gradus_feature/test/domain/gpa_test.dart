@@ -252,6 +252,44 @@ void main() {
     });
   });
 
+  group('administrative grades in an average', () {
+    test('a withdrawal is neither attempted nor averaged', () {
+      final result = calculateGpa([
+        _course('1', 8, _a),
+        _course('2', 6, _scale.byLetter('W')),
+      ], _scale);
+
+      expect(result.value, 4.0);
+      expect(result.qualityCredits, 8);
+      expect(
+        result.attemptedCredits,
+        8,
+        reason: 'the withdrawn 6 are not owed',
+      );
+    });
+
+    test('a pass is attempted credit that the average leaves alone', () {
+      final result = calculateGpa([
+        _course('1', 8, _a),
+        _course('2', 6, _pass),
+      ], _scale);
+
+      expect(result.value, 4.0, reason: 'a pass is not a zero');
+      expect(result.qualityCredits, 8);
+      expect(result.attemptedCredits, 14);
+    });
+
+    test('a transcript of nothing but withdrawals has no average', () {
+      final result = calculateGpa([
+        _course('1', 8, _scale.byLetter('W')),
+        _course('2', 6, _scale.byLetter('AU')),
+      ], _scale);
+
+      expect(result.value, isNull);
+      expect(result.attemptedCredits, 0);
+    });
+  });
+
   group('FourPointScale', () {
     test('rejects a letter it does not define', () {
       expect(() => _scale.byLetter('Z'), throwsA(isA<UnknownGradeFailure>()));
@@ -259,6 +297,26 @@ void main() {
 
     test('pass does not count toward the average', () {
       expect(_scale.byLetter('P').countsTowardGpa, isFalse);
+    });
+
+    test('a pass is still credit the student attempted', () {
+      expect(_scale.byLetter('P').countsAsAttemptedCredit, isTrue);
+    });
+
+    test('an administrative grade is outside both figures', () {
+      for (final letter in ['AU', 'I', 'IP', 'W', 'AW']) {
+        final grade = _scale.byLetter(letter);
+        expect(grade.countsTowardGpa, isFalse, reason: letter);
+        expect(grade.countsAsAttemptedCredit, isFalse, reason: letter);
+        expect(grade.qualityPoints, 0.0, reason: letter);
+      }
+    });
+
+    test('no administrative grade can be reached from a percentage', () {
+      // the bands award letters; enrolment states these, and no score does
+      for (final percentage in [0.0, 49.9, 65.0, 94.9, 100.0]) {
+        expect(_scale.forPercentage(percentage)!.countsTowardGpa, isTrue);
+      }
     });
 
     test('turns a percentage into the letter its band earns', () {

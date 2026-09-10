@@ -122,12 +122,10 @@ it is displayed.
 
 Each of these changes what gets built. None should be guessed.
 
-1. **Which administrative grades to carry.** The scale itself is settled - see
-   below - but NU also issues `AU`, `I`, `IP`, `W` and `AW`, and only `P` is
-   modelled. Each of the others is excluded from the average, which the scale
-   can already express, but `AU` and `I` are excluded from *attempted* credit
-   too, and nothing here carries that distinction. Adding them without it would
-   show a withdrawn or audited course among the credits a student attempted.
+1. **Whether a course may state its own percentage cutoffs.** The scale is
+   settled, but the cutoffs under it are faculty discretion, so a syllabus is
+   entitled to print a different table. Today one table applies to every course
+   and a student whose course differs has to correct the letter by hand.
 2. **Where course data comes from.** Student-entered, read from a syllabus,
    imported from the registrar, pulled from Moodle, or some combination. This
    decides whether a backend is needed at all, and whether grades are ever
@@ -194,6 +192,28 @@ is entitled to, and the student would have to correct the letter by hand. And a
 `P` earns no quality points but is not a zero: it leaves the average untouched
 rather than dragging it down, because a course that does not weigh on the GPA is
 absent from the divisor as well as the total.
+
+### Grades that are not marks
+
+NU also issues `P`, `AU`, `I`, `IP`, `W` and `AW`, and all six are here. None
+carries quality points, so none moves the average. They divide on the second
+question, which is whether the credit was attempted at all:
+
+| Grade | In the average | In attempted credit |
+|---|---|---|
+| `P` | No | **Yes** - a pass is credit earned |
+| `AU` `I` `IP` `W` `AW` | No | No - audited, unfinished or withdrawn |
+
+That distinction is why `Grade` carries two flags rather than one. A pass sits
+in the credits a student attempted and leaves the average untouched; a
+withdrawal sits in neither, so a dropped course does not quietly inflate the
+credits a transcript claims.
+
+**A grade of this kind stands over marked work.** The percentage bands only ever
+yield a letter that earns points, so a letter earning none was chosen
+deliberately and states something no score can: a student who sat a midterm and
+then withdrew has a `W`, not the `C+` the midterm came to. The percentage is
+still shown; it just no longer decides the letter.
 
 `GradeScale` stays an interface. A scale that declines to map percentages
 returns no letter, and the feature then shows the percentage alone rather than

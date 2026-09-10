@@ -279,7 +279,8 @@ Read this before assuming the service is deployable.
   points are the registrar's published table and the cutoffs are the ones every
   syllabus in `backend/evals/` prints. What remains is that those cutoffs are
   faculty discretion rather than a university rule, so a course may print its
-  own, and that only `P` of NU's administrative grades is modelled.
+  own. NU's administrative grades are all carried, and a grade that earns no
+  points stands over marked work rather than being overridden by a percentage.
 - **The host authentication resolver has never verified a real token.** It
   checks a JWT's signature, issuer, audience and expiry, and rejects everything
   until an issuer and a key are configured. What has not happened is an exchange

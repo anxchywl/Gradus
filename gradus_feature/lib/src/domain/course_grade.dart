@@ -78,16 +78,27 @@ CourseGrade calculateCourseGrade(Course course, GradeScale scale) {
 
   var source = GradeSource.none;
   Grade? grade;
-  if (currentPercentage != null) {
-    grade = scale.forPercentage(currentPercentage);
-    if (grade != null) source = GradeSource.assignments;
-  }
-  if (grade == null && course.grade != null) {
-    grade = course.grade;
+  final chosen = course.grade;
+  // the bands only ever yield a letter that earns points, so a chosen letter
+  // that earns none states something marked work cannot: a pass, a withdrawal,
+  // an audit. it stands rather than being overridden by a percentage
+  if (chosen != null && !chosen.countsTowardGpa) {
+    grade = chosen;
     source = GradeSource.manual;
+  } else {
+    if (currentPercentage != null) {
+      grade = scale.forPercentage(currentPercentage);
+      if (grade != null) source = GradeSource.assignments;
+    }
+    if (grade == null && chosen != null) {
+      grade = chosen;
+      source = GradeSource.manual;
+    }
   }
 
-  final isAttempted = grade != null || gradedCount > 0;
+  final isAttempted =
+      (grade != null || gradedCount > 0) &&
+      (grade?.countsAsAttemptedCredit ?? true);
   // a letter the scale marks as carrying no points earns credit, not points
   final weighsOnGpa = isAttempted && (grade?.countsTowardGpa ?? false);
 
