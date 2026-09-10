@@ -1,0 +1,19 @@
+{
+  "document": "math162-2024s-c.pdf",
+  "template": "nu-course-spec-form",
+  "note": "originated as a word document and was converted to pdf, so its text layout differs from the forms that were exported directly; the course code is printed with irregular spacing",
+  "expected": {
+    "code": "MATH 162- 2L",
+    "title": "Calculus II",
+    "credits": 8,
+    "credit_unit": "ECTS",
+    "term": "Spring 2024",
+    "assessments": [
+      {"name": "HWs (WeBWorK)", "weight": 10},
+      {"name": "Quizzes", "weight": 10},
+      {"name": "Midterm Exam 1 (Chap. 6, 7)", "weight": 25},
+      {"name": "Midterm Exam 2 (Chap. 8, 9)", "weight": 25},
+      {"name": "Final Exam (All sections)", "weight": 30}
+    ]
+  }
+}

@@ -310,21 +310,22 @@ Read this before assuming the service is deployable.
   course. A partial fill is a normal outcome, the course title is the field most
   often wrong, and the assessment table is the part that reads most reliably.
   Nothing is applied without the student confirming it.
-- **Extraction is measured on three documents, which is not many.** The
+- **Extraction is measured on four documents, which is not many.** The
   extractor talks to a `StructuredModelClient`, and there are two adapters
   behind it: Anthropic, and one covering every OpenAI-compatible endpoint, which
   is how OpenAI, Gemini and DeepSeek are reached. The default is
   `gemini-3.1-flash-lite` on the second one, and it has now been run:
-  `backend/evals/` scores nine calls, three documents by three repeats, every
-  field and every assessment row exact, with no variation between repeats. The
+  `backend/evals/` scores every field and every assessment row exact across four
+  documents, with no variation between repeats. The
   compatibility endpoint carries a schema of almost entirely optional fields
   intact, which was the thing in doubt.
 
   What that does not establish is behaviour on a document unlike these three.
-  The sample is two templates - one institutional form seen in two terms, and
+  The sample is two templates - one institutional form seen in three terms, and
   one free-form document - so it shows the right assessment table being found
   next to a letter-grade table and a weekly schedule, and nothing about a layout
-  no one has tried yet. A scanned syllabus still cannot be read at all.
+  no one has tried yet. A scanned syllabus still cannot be read at all, and
+  neither can a Word document, which is a format instructors do hand out.
 
   The failure stays safe rather than silent: a model that answers off-schema
   produces nothing to parse, and the endpoint returns `extraction_unavailable`
