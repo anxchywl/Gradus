@@ -200,11 +200,15 @@ class Settings(BaseSettings):
             return self.syllabus_document_max_bytes
         return self.request_body_max_bytes
 
-    # the syllabus text travels over this, so it is never plain http
+    # the syllabus text travels over this, so it is never plain http. an
+    # unset variable reaches here from a .env file as an empty string, which
+    # means "no override" rather than "a url that has no scheme"
     @field_validator("syllabus_base_url")
     @classmethod
     def _base_url_is_https(cls, value: str | None) -> str | None:
-        if value is not None and urlsplit(value).scheme != "https":
+        if not value:
+            return None
+        if urlsplit(value).scheme != "https":
             raise ValueError("SYLLABUS_BASE_URL must be https")
         return value
 

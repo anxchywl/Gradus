@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
@@ -201,3 +203,52 @@ def test_a_wildcard_origin_from_the_environment_is_still_refused(
     # the guard must hold on the path production takes, not only on keywords
     with pytest.raises(PydanticValidationError):
         Settings.model_validate({})
+
+
+def test_an_empty_model_endpoint_from_the_environment_means_no_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # every optional variable an env file carries arrives as "" when unset, and
+    # "" is not a url with a missing scheme
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("SYLLABUS_BASE_URL", "")
+
+    assert Settings.model_validate({}).syllabus_base_url is None
+
+
+def test_a_plain_http_endpoint_from_the_environment_is_still_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("SYLLABUS_BASE_URL", "http://models.example.com/v1")
+
+    with pytest.raises(PydanticValidationError):
+        Settings.model_validate({})
+
+
+# the file a server copies must produce a service that starts. two deployments
+# crash-looped on values that were present but empty in exactly this file, and
+# nothing here exercised it because tests build settings from keywords instead
+def test_the_shipped_production_example_starts_the_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    example = Path(__file__).parents[3] / "deploy" / "production.env.example"
+    for line in example.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        monkeypatch.setenv(key, value)
+
+    # the operator supplies these before preflight will pass; everything else
+    # is whatever the example ships, empty values included
+    monkeypatch.setenv("HOST_JWT_ISSUER", "https://issuer.example")
+    monkeypatch.setenv("HOST_JWT_ALGORITHM", "HS256")
+    monkeypatch.setenv("HOST_JWT_SECRET", "s" * 40)
+
+    built = Settings.model_validate({})
+
+    assert built.environment is AppEnvironment.production
+    assert built.auth_adapter is AuthAdapter.host
+    assert built.cors_allowed_origins == []
+    assert built.syllabus_base_url is None
