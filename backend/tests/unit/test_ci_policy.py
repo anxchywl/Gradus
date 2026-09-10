@@ -64,8 +64,37 @@ def test_no_workflow_enables_standalone_release_access() -> None:
         assert "ENABLE_DEV_ACCESS=true" not in text, workflow.name
 
 
+def _deployment_workflows() -> list[Path]:
+    return [w for w in _workflows() if "deploy" in w.read_text()]
+
+
 def test_deployment_uses_the_tested_revision() -> None:
-    ci = (WORKFLOWS / "ci.yml").read_text()
-    if "deploy" not in ci:
-        return
-    assert "github.sha" in ci, "deploy must pin the revision CI actually tested"
+    for workflow in _deployment_workflows():
+        text = workflow.read_text()
+        assert "github.sha" in text, (
+            f"{workflow.name} must pin the revision CI actually tested"
+        )
+
+
+def test_deployment_refuses_a_revision_ci_has_not_passed() -> None:
+    # a pinned revision that nobody tested is still an untested deployment
+    for workflow in _deployment_workflows():
+        if "ssh" not in workflow.read_text():
+            continue
+        assert "conclusion" in workflow.read_text(), (
+            f"{workflow.name} must check the ci conclusion before shipping"
+        )
+
+
+def test_deployment_verifies_the_host_it_connects_to() -> None:
+    # an unverified host key is the ssh equivalent of skipping certificate
+    # checks, and this project refuses that in every other place
+    for workflow in _deployment_workflows():
+        text = workflow.read_text()
+        if "ssh" not in text:
+            continue
+        assert "StrictHostKeyChecking=no" not in text, workflow.name
+        assert "UserKnownHostsFile=/dev/null" not in text, workflow.name
+        assert "known_hosts" in text, (
+            f"{workflow.name} must pin the host keys it will accept"
+        )

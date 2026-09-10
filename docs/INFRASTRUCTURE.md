@@ -190,9 +190,42 @@ to read a syllabus; without one it starts and serves health, and the extraction
 endpoint refuses. It shares a host with four other projects, so it
 is capped at 256 MiB and publishes no port of its own.
 
+A tag matching `v*.*.*` deploys; a push to `main` only validates. The `Deploy`
+workflow refuses before it touches anything if a secret is missing, if CI has
+not passed on that exact revision, or if the host key does not match, and
+`test_ci_policy.py` fails the build if any of those three guards is removed.
+`workflow_dispatch` runs the same job without a new tag, which is how a rollback
+goes out.
+
+Deploying by hand does the same thing from the host itself:
+
 ```bash
 ENV_FILE=/path/to/.env.production ./deploy/deploy.sh
 ```
+
+### What a deployment needs before it can work
+
+Nothing here has been done, so the workflow will refuse at its first step. It is
+written down rather than discovered later.
+
+| Secret or variable | Where | What it is |
+|---|---|---|
+| `DEPLOY_HOST` | secret | the shared host |
+| `DEPLOY_USER` | secret | the account that owns the checkout and may run docker |
+| `DEPLOY_PATH` | secret | the repository checkout on that host |
+| `DEPLOY_SSH_KEY` | secret | a private key whose public half is in that account's `authorized_keys` |
+| `DEPLOY_KNOWN_HOSTS` | secret | `ssh-keyscan` output for the host, so the key is pinned |
+| `GRADUS_API_DOMAIN` | variable | the name the proxy serves, checked from outside after the deploy |
+
+On the host: the repository checked out at `DEPLOY_PATH`, a filled
+`.env.production` beside it, and a Caddy site block for the domain reverse
+proxying `gradus-backend-1:8000`.
+
+Two of those are not configuration but decisions nobody has taken. There is no
+DNS record for `gradus.anxchywl.dev`, so the external health check cannot pass;
+and `preflight.sh` requires `HOST_JWT_ISSUER` and a key, which the host
+application has never agreed, so it will refuse the deployment on principle. It
+is meant to: a service nobody can authenticate against is not worth shipping.
 
 `deploy.sh` detects whether another project's Caddy already owns 80 and 443. If
 it does, the service joins that proxy's network for ingress only through
@@ -211,10 +244,11 @@ projects on that host.
 
 Deliberately absent, so nobody assumes otherwise:
 
-- **A released deployment.** The scripts exist and refuse to ship anything
-  unsafe, but nothing has shipped: `gradus.anxchywl.dev` has no DNS record, and
-  preflight refuses to deploy without a host issuer and key. Images are also
-  still built on the host rather than in CI.
+- **A released deployment.** The pipeline exists and refuses to ship anything
+  unsafe, but nothing has shipped and the workflow has never run to completion:
+  `gradus.anxchywl.dev` has no DNS record, no deployment secret is set, and
+  preflight refuses without a host issuer and key. Images are also still built on
+  the host rather than in CI.
 - **Migrations and backups.** Neither exists, because nothing is stored. If
   server-side persistence is ever chosen (open decision 3 in PRODUCT.md), both
   are required before the first production write.
