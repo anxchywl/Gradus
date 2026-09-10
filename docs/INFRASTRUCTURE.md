@@ -17,7 +17,8 @@ app_ui/       shared presentation kit, forked once
 gradus_feature/  the embeddable feature
 gradus_app/      standalone host
 backend/      FastAPI service
-docker/       local and production Compose definitions
+docker/       local, production and shared-host Compose definitions
+deploy/       preflight, deployment and its rollback
 scripts/      verify.sh and the coverage floor
 ```
 
@@ -25,7 +26,6 @@ scripts/      verify.sh and the coverage floor
 
 ```bash
 cp .env.example .env          # then fill in the empty values
-docker compose -f docker/docker-compose.yml up -d postgres
 
 cd backend
 uv sync --extra dev
@@ -83,6 +83,21 @@ Passing checks demonstrate only the covered behaviour. Nothing here has been
 exercised against a real database, a real host identity provider, or a deployed
 environment.
 
+## Secrets
+
+`ANTHROPIC_API_KEY` is the only credential this service holds. It lives in
+`.env.production` on the server as a `SecretStr`, is never compiled into a client
+build, and with it absent the extraction endpoint refuses rather than the service
+failing to start.
+
+Never in source, never in a build define, never in a log, never in a URL.
+`.env` is git-ignored; `.env.example` and `deploy/production.env.example` carry
+names and empty placeholders only. gitleaks scans the full history on every CI
+run.
+
+Development tokens have no default value, for the reason given under
+[development access](./ARCHITECTURE.md#development-access).
+
 ## Adding user-facing text
 
 Add the key to all three ARB files under `gradus_feature/lib/src/l10n/arb/`,
@@ -123,19 +138,43 @@ superapp, not this host.
 | Staging | `production` | `host` | disabled |
 | Production | `production` | `host` | disabled |
 
-Staging and production both require an implemented host resolver, which does not
-exist yet. See [SECURITY.md](./SECURITY.md).
+Staging and production both require the superapp's issuer and signing key, and
+`deploy/preflight.sh` refuses to ship without them.
+
+## Deployment
+
+The service is stateless: one container, no database, no volume, nothing to
+migrate and nothing to restore. It needs `ANTHROPIC_API_KEY` in its environment
+to read a syllabus; without one it starts and serves health, and the extraction
+endpoint refuses. It shares a host with four other projects, so it
+is capped at 256 MiB and publishes no port of its own.
+
+```bash
+ENV_FILE=/path/to/.env.production ./deploy/deploy.sh
+```
+
+`deploy.sh` detects whether another project's Caddy already owns 80 and 443. If
+it does, the service joins that proxy's network for ingress only through
+`docker/docker-compose.shared-host.yml`; if it does not, it publishes its own
+port. Preflight runs first and refuses a dirty tree, a non-production `APP_ENV`,
+a development adapter, a development token, enabled API documentation, a missing
+superapp key, or a missing proxy network. A failed deployment restores the
+previous image.
+
+The proxy needs a site block for `GRADUS_API_DOMAIN` reverse-proxying
+`gradus-backend-1:8000`; the one for `gradus.anxchywl.dev` lives in the wished
+repository's `infra/caddy/Caddyfile.production` beside the blocks for the other
+projects on that host.
 
 ## Not built yet
 
 Deliberately absent, so nobody assumes otherwise:
 
-- **Deployment.** No deploy script, no target, no rollback procedure. When it is
-  written, it deploys the exact tested commit by detached checkout onto a
-  verified-clean tree, and builds images in CI rather than on the host.
-- **Migrations.** No ORM model exists, so `backend/migrations/` is empty. When
-  the first model lands, migrations are expand-contract so the previous release
-  runs against the new schema, and CI gains `alembic check`.
-- **Backups.** No dump, no verification, no restore drill. Required before the
-  first production write.
+- **A released deployment.** The scripts exist and refuse to ship anything
+  unsafe, but nothing has shipped: `gradus.anxchywl.dev` has no DNS record, and
+  preflight refuses to deploy without a superapp issuer and key. Images are also
+  still built on the host rather than in CI.
+- **Migrations and backups.** Neither exists, because nothing is stored. If
+  server-side persistence is ever chosen (open decision 3 in PRODUCT.md), both
+  are required before the first production write.
 - **Monitoring and alerting.**
