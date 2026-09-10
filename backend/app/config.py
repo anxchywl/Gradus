@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from enum import StrEnum
 from functools import lru_cache
+from typing import Annotated
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class AppEnvironment(StrEnum):
@@ -97,7 +98,10 @@ class Settings(BaseSettings):
         alias="HOST_OPERATOR_VALUE",
     )
 
-    cors_allowed_origins: list[str] = Field(
+    # NoDecode keeps the settings source from json-parsing this before the
+    # validator sees it: a list field arriving from the environment is decoded
+    # as json by default, and an empty CORS_ALLOWED_ORIGINS= is not valid json
+    cors_allowed_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=list,
         alias="CORS_ALLOWED_ORIGINS",
     )

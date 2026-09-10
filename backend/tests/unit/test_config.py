@@ -167,3 +167,37 @@ def test_an_https_model_endpoint_is_accepted() -> None:
 def test_a_provider_outside_the_supported_set_is_refused() -> None:
     with pytest.raises(PydanticValidationError):
         settings(SYLLABUS_PROVIDER="a-model-someone-heard-about")
+
+
+# the environment is the path production uses, and it is decoded differently
+# from keyword arguments: a list field arrives as json unless told otherwise,
+# so these cases never ran until a deployment crash-looped on an empty value
+def test_an_empty_origin_list_from_the_environment_starts_the_service(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "")
+
+    assert Settings.model_validate({}).cors_allowed_origins == []
+
+
+def test_origins_from_the_environment_are_split_on_commas(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://a.example, https://b.example")
+
+    built = Settings.model_validate({})
+
+    assert built.cors_allowed_origins == ["https://a.example", "https://b.example"]
+
+
+def test_a_wildcard_origin_from_the_environment_is_still_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "*")
+
+    # the guard must hold on the path production takes, not only on keywords
+    with pytest.raises(PydanticValidationError):
+        Settings.model_validate({})
