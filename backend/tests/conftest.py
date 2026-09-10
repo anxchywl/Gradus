@@ -24,8 +24,8 @@ def development_settings() -> Settings:
     )
 
 
-SUPERAPP_ISSUER = "https://superapp.example.edu"
-SUPERAPP_AUDIENCE = "gradus"
+HOST_ISSUER = "https://host.example.edu"
+HOST_AUDIENCE = "gradus"
 
 # one key pair for the whole session, generating rsa material is not free
 _signing_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -44,20 +44,20 @@ def public_pem(key: rsa.RSAPrivateKey) -> str:
 
 
 @pytest.fixture
-def superapp_signing_key() -> rsa.RSAPrivateKey:
+def host_signing_key() -> rsa.RSAPrivateKey:
     return _signing_key
 
 
 @pytest.fixture
-def superapp_foreign_key() -> rsa.RSAPrivateKey:
+def host_foreign_key() -> rsa.RSAPrivateKey:
     return _other_key
 
 
 @pytest.fixture
-def superapp_settings() -> Settings:
+def host_settings() -> Settings:
     return settings(
-        SUPERAPP_JWT_ISSUER=SUPERAPP_ISSUER,
-        SUPERAPP_JWT_AUDIENCE=SUPERAPP_AUDIENCE,
-        SUPERAPP_JWT_ALGORITHM="RS256",
-        SUPERAPP_JWT_PUBLIC_KEY=public_pem(_signing_key),
+        HOST_JWT_ISSUER=HOST_ISSUER,
+        HOST_JWT_AUDIENCE=HOST_AUDIENCE,
+        HOST_JWT_ALGORITHM="RS256",
+        HOST_JWT_PUBLIC_KEY=public_pem(_signing_key),
     )

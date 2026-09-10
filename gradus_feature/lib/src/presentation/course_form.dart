@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 
@@ -12,6 +14,10 @@ import '../l10n/gradus_strings.dart';
 import 'focus_mode.dart';
 import 'gradus_formatting.dart';
 import 'gradus_widgets.dart';
+
+// how long a read may run before the wait has to say something other than what
+// it said at the start
+const Duration importPatience = Duration(seconds: 5);
 
 enum _Field { code, title, credits }
 
@@ -65,6 +71,8 @@ class _CourseFormState extends State<CourseForm> {
   _Chooser? _chooser;
   bool _isSubmitting = false;
   bool _isImporting = false;
+  bool _importIsSlow = false;
+  Timer? _importPatience;
   List<SyllabusAssessment> _imported = const [];
   SyllabusImportProblem? _importProblem;
   List<_MissingField> _importMissing = const [];
@@ -92,6 +100,7 @@ class _CourseFormState extends State<CourseForm> {
 
   @override
   void dispose() {
+    _importPatience?.cancel();
     _code.dispose();
     _title.dispose();
     _credits.dispose();
@@ -105,7 +114,13 @@ class _CourseFormState extends State<CourseForm> {
     if (importer == null || _isImporting) return;
     setState(() {
       _isImporting = true;
+      _importIsSlow = false;
       _importProblem = null;
+    });
+    // reads have run from three seconds to fourteen, and the long ones look
+    // identical to a hang unless the wait says something new
+    _importPatience = Timer(importPatience, () {
+      if (mounted) setState(() => _importIsSlow = true);
     });
     try {
       final draft = await importer();
@@ -116,7 +131,13 @@ class _CourseFormState extends State<CourseForm> {
       if (!mounted) return;
       setState(() => _importProblem = failure.problem);
     } finally {
-      if (mounted) setState(() => _isImporting = false);
+      _importPatience?.cancel();
+      if (mounted) {
+        setState(() {
+          _isImporting = false;
+          _importIsSlow = false;
+        });
+      }
     }
   }
 
@@ -190,6 +211,11 @@ class _CourseFormState extends State<CourseForm> {
       ),
   ];
 
+  String _importLabel(GradusStrings strings) {
+    if (!_isImporting) return strings.importFromSyllabus;
+    return _importIsSlow ? strings.importStillRunning : strings.importRunning;
+  }
+
   // the control only exists where a syllabus can actually be read
   List<Widget> _importControl(GradusStrings strings) {
     if (widget.onImportSyllabus == null || widget.existing != null) {
@@ -198,7 +224,7 @@ class _CourseFormState extends State<CourseForm> {
     final problem = _importProblem;
     return [
       AppSecondaryButton(
-        text: _isImporting ? strings.importRunning : strings.importFromSyllabus,
+        text: _importLabel(strings),
         isLoading: _isImporting,
         onPressed: _isImporting ? null : _import,
       ),
@@ -453,6 +479,7 @@ class _CourseFormState extends State<CourseForm> {
             child: TextFormField(
               controller: _code,
               focusNode: _focus.nodeFor(_Field.code),
+              enabled: !_isImporting,
               decoration: InputDecoration(labelText: strings.courseCode),
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focus.moveTo(_Field.title),
@@ -464,6 +491,7 @@ class _CourseFormState extends State<CourseForm> {
             child: TextFormField(
               controller: _title,
               focusNode: _focus.nodeFor(_Field.title),
+              enabled: !_isImporting,
               decoration: InputDecoration(labelText: strings.courseTitle),
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focus.moveTo(_Field.credits),
@@ -477,6 +505,7 @@ class _CourseFormState extends State<CourseForm> {
             child: TextFormField(
               controller: _credits,
               focusNode: _focus.nodeFor(_Field.credits),
+              enabled: !_isImporting,
               decoration: InputDecoration(labelText: strings.courseCredits),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -503,12 +532,14 @@ class _CourseFormState extends State<CourseForm> {
               children: [
                 AppSpacing.verticalMd,
                 GradusChooserField(
+                  isEnabled: !_isImporting,
                   label: strings.semesterLabel,
                   value: _semesterLabel(strings),
                   onTap: () => setState(() => _chooser = _Chooser.semester),
                 ),
                 AppSpacing.verticalMd,
                 GradusChooserField(
+                  isEnabled: !_isImporting,
                   label: strings.courseGrade,
                   value: _grade?.letter ?? strings.gradeNotSet,
                   onTap: () => setState(() => _chooser = _Chooser.grade),
@@ -532,6 +563,7 @@ class _CourseFormState extends State<CourseForm> {
             actions: GradusFormActions(
               primaryLabel: strings.save,
               onPrimary: _submit,
+              isPrimaryEnabled: !_isImporting,
               secondaryLabel: widget.onDelete == null
                   ? strings.cancel
                   : strings.delete,

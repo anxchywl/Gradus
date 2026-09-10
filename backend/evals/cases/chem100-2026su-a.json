@@ -1,0 +1,17 @@
+{
+  "document": "chem100-2026su-a.pdf",
+  "template": "free-form",
+  "expected": {
+    "code": "CHEM 100",
+    "title": "Introduction to Chemistry",
+    "credits": null,
+    "credit_unit": null,
+    "term": "Summer 2026",
+    "assessments": [
+      {"name": "Quizzes (2)", "weight": 30},
+      {"name": "Mid-term exams (2)", "weight": 35},
+      {"name": "Final exam", "weight": 30},
+      {"name": "Attendance", "weight": 5}
+    ]
+  }
+}

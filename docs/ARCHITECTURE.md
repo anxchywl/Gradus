@@ -60,7 +60,8 @@ Wiring happens once: `GradusScope` on the client, `create_app` and
 
 ## Mounting inside a host
 
-The feature is built to be mounted inside the university superapp.
+The feature runs on its own, and is built so it can also be mounted inside a
+host application.
 
 ```dart
 GradusFeature(
@@ -208,7 +209,7 @@ Two directions, and neither trusts the other's word for anything.
 | Boundary | Trusted | Not trusted |
 |---|---|---|
 | Client to API | Nothing the client sends | Identity, role, ownership, permissions, validation outcomes |
-| Superapp to API | A credential the configured resolver accepts | Any claim the resolver does not itself produce |
+| Host to API | A credential the configured resolver accepts | Any claim the resolver does not itself produce |
 | API to storage | Server-constructed queries | Client-supplied paths or keys |
 
 ### Controls, and how each is verified
@@ -225,7 +226,7 @@ the tests named in it are the evidence.
 | 5 | CORS from config: no wildcard, no credentials, HTTPS in production | `app/config.py`, `app/main.py` | `test_config.py::test_wildcard_cors_origin_is_refused` and the malformed-origin cases | Implemented |
 | 6 | Role comes from the resolved credential and is rechecked per endpoint | `app/dependencies.py` | `test_dependencies.py::test_a_client_cannot_claim_operator_status`, `::test_a_student_may_not_reach_an_operator_endpoint` | Implemented |
 | 7 | Development resolver is a separate class, constant-time compare | `app/infrastructure/auth/resolvers.py` | `test_auth.py` | Implemented |
-| 8 | Host resolver verifies a superapp token: signature, issuer, audience and expiry | `app/infrastructure/auth/resolvers.py` | `test_auth.py::test_superapp_resolver_accepts_a_token_the_issuer_signed` and the rejection cases | Implemented |
+| 8 | Host resolver verifies a host token: signature, issuer, audience and expiry | `app/infrastructure/auth/resolvers.py` | `test_auth.py::test_host_resolver_accepts_a_token_the_issuer_signed` and the rejection cases | Implemented |
 | 8a | An unconfigured host resolver rejects every token rather than opening | `app/infrastructure/auth/resolvers.py` | `test_auth.py::test_host_resolver_rejects_every_token`, `::test_an_unconfigured_host_stays_closed_rather_than_open` | Implemented |
 | 8b | Signing algorithm allowlisted; key material must match its family | `app/config.py` | `test_config.py::test_an_unlisted_signing_algorithm_is_refused`, `::test_a_public_key_cannot_be_used_as_an_hmac_secret` | Implemented |
 | 8c | Operator status comes from a configured claim matching a configured value | `app/infrastructure/auth/resolvers.py` | `test_auth.py::test_a_token_cannot_claim_operator_status`, `::test_operator_status_comes_from_the_configured_claim` | Implemented |
@@ -279,11 +280,11 @@ Read this before assuming the service is deployable.
   cutoffs are an example on exactly the same terms. A letter derived from a
   percentage inherits that, and so does the GPA computed from it.
 - **The host authentication resolver has never verified a real token.** It
-  checks a superapp JWT's signature, issuer, audience and expiry, and rejects
-  everything until an issuer and a key are configured. What has not happened is
-  an exchange with an actual superapp: the issuer, audience, algorithm, subject
-  claim and operator claim are all configuration, and none of their values has
-  been agreed. Nothing may replace this by falling back to the development
+  checks a JWT's signature, issuer, audience and expiry, and rejects everything
+  until an issuer and a key are configured. What has not happened is an exchange
+  with an actual host application: the issuer, audience, algorithm, subject
+  claim and operator claim are all configuration, and none of their values is
+  set. Nothing may replace this by falling back to the development
   adapter.
 - **Persistence is device-local only.** The transcript lives in that device's
   preference store. There is no server-side model and no sync: reinstalling the
@@ -304,10 +305,35 @@ Read this before assuming the service is deployable.
   the upload - but it is the one place where something the student chose travels
   off their phone.
 - **Extraction quality varies with the document.** Syllabi share no layout; the
-  three seen so far span two unrelated templates and a free-form Word document.
-  A partial fill is a normal outcome, the course title is the field most often
-  wrong, and the assessment table is the part that reads most reliably. Nothing
-  is applied without the student confirming it.
+  three seen so far span two unrelated templates and a free-form Word document,
+  and the table changes again with the instructor and the term for the same
+  course. A partial fill is a normal outcome, the course title is the field most
+  often wrong, and the assessment table is the part that reads most reliably.
+  Nothing is applied without the student confirming it.
+- **Extraction is measured on three documents, which is not many.** The
+  extractor talks to a `StructuredModelClient`, and there are two adapters
+  behind it: Anthropic, and one covering every OpenAI-compatible endpoint, which
+  is how OpenAI, Gemini and DeepSeek are reached. The default is
+  `gemini-3.1-flash-lite` on the second one, and it has now been run:
+  `backend/evals/` scores nine calls, three documents by three repeats, every
+  field and every assessment row exact, with no variation between repeats. The
+  compatibility endpoint carries a schema of almost entirely optional fields
+  intact, which was the thing in doubt.
+
+  What that does not establish is behaviour on a document unlike these three.
+  The sample is two templates - one institutional form seen in two terms, and
+  one free-form document - so it shows the right assessment table being found
+  next to a letter-grade table and a weekly schedule, and nothing about a layout
+  no one has tried yet. A scanned syllabus still cannot be read at all.
+
+  The failure stays safe rather than silent: a model that answers off-schema
+  produces nothing to parse, and the endpoint returns `extraction_unavailable`
+  instead of a draft. A student sees a refusal, never a wrong grade. What it
+  does cost them is a slot in their extraction allowance, which is claimed
+  before the call.
+
+  Latency is the part worth watching: those nine calls ranged from 2.6 to 14.0
+  seconds, and the student is waiting through it.
 - **No projected grade.** Assuming the current average continues over the
   remaining weight evaluates to the current average itself, so shipping it as a
   separate figure would dress a restatement up as a forecast. `Max possible` is
@@ -317,7 +343,7 @@ Read this before assuming the service is deployable.
 - **The deployment has never run.** `deploy/` builds the current revision,
   refuses to ship a development mechanism, and rolls back to the previous image
   on failure, but no release has gone out: `gradus.anxchywl.dev` has no DNS
-  record yet, and preflight refuses to deploy without a superapp issuer and key.
+  record yet, and preflight refuses to deploy without a host issuer and key.
   There is no backup or restore drill, and with no stored data there is nothing
   yet to back up.
 - **No golden tests, no device integration tests, no end-to-end run against a
@@ -327,7 +353,7 @@ Read this before assuming the service is deployable.
 
 | Threat | Control | Remaining boundary |
 |---|---|---|
-| Forged role or identity | Request bodies contain neither; both come from the resolved credential, and operator access is rechecked per endpoint | The superapp's issuer, audience and claim names are unagreed, so the verifier is untested against a real token |
+| Forged role or identity | Request bodies contain neither; both come from the resolved credential, and operator access is rechecked per endpoint | No host issuer, audience or claim names are set, so the verifier is untested against a real token |
 | A syllabus carrying instructions aimed at the model | The document is quoted as data with a system prompt that says so; the model is given no tools, and nothing it returns selects an identifier, a storage key, a semester or an endpoint; every returned value is sanitised and range-checked on both sides | A model can still be talked into a wrong extraction, which is why the student confirms the draft rather than it being applied |
 | A document that expands or never ends | Capped at three levels: bytes on the way in, pages read, and characters extracted; the read runs off the event loop | A pathological document can still spend the reader's time up to those caps |
 | A token forged by swapping its algorithm | One algorithm from an allowlist that excludes `none`; an HS secret and an asymmetric public key cannot be configured together | Depends on the issuer keeping its signing key secret |

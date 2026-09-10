@@ -1,0 +1,34 @@
+{
+  "document": "math162-2023s-b.pdf",
+  "template": "nu-course-spec-form",
+  "expected": {
+    "code": "MATH 162 - 12L",
+    "title": "Calculus II",
+    "credits": 8,
+    "credit_unit": "ECTS",
+    "term": "Spring 2023",
+    "assessments": [
+      {
+        "name": "HWs (WeBWorK)",
+        "weight": 10
+      },
+      {
+        "name": "Quizzes",
+        "weight": 10
+      },
+      {
+        "name": "Midterm Exam 1 (Chap. 6, 7)",
+        "weight": 25
+      },
+      {
+        "name": "Midterm Exam 2 (Chap. 8, 9)",
+        "weight": 25
+      },
+      {
+        "name": "Final Exam (All sections)",
+        "weight": 30
+      }
+    ]
+  },
+  "note": "values are transcribed as the document prints them, including a section suffix on the code and the chapter references inside row names, because that is the standard the prompt sets"
+}

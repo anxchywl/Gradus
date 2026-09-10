@@ -74,6 +74,7 @@
   "creditsRatio": "{attempted} ішінен {quality}",
   "importFromSyllabus": "Силлабустан толтыру",
   "importRunning": "Силлабус оқылуда",
+  "importStillRunning": "Әлі оқылуда, бұл біраз уақыт алуы мүмкін",
   "importNote": "Файл Gradus серверіне жіберіліп, сонда оқылады. Сақтамас бұрын толтырылғанды тексеріңіз.",
   "importMissingFields": "Силлабустан табылмады: {fields}",
   "importedAssignments": "Силлабустан",

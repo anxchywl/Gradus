@@ -255,6 +255,10 @@
   "@importRunning": {
     "description": "Shown while the chosen file is being read"
   },
+  "importStillRunning": "Still reading, this can take a moment",
+  "@importStillRunning": {
+    "description": "Replaces importRunning once a read has gone on long enough to look stuck"
+  },
   "importNote": "The file is sent to the Gradus server and read there. Check what it filled in before saving.",
   "@importNote": {
     "description": "Says where the document goes, shown next to the import button"

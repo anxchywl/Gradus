@@ -50,22 +50,25 @@ class GradusChooserField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onTap,
+    this.isEnabled = true,
   });
 
   final String label;
   final String value;
   final VoidCallback onTap;
+  final bool isEnabled;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
+    enabled: isEnabled,
     label: label,
     value: value,
     child: InkWell(
-      onTap: onTap,
+      onTap: isEnabled ? onTap : null,
       borderRadius: AppSpacing.borderRadiusDf,
       child: InputDecorator(
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(labelText: label, enabled: isEnabled),
         child: Row(
           children: [
             Expanded(
@@ -74,7 +77,9 @@ class GradusChooserField extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.bodyLarge.copyWith(
-                  color: gradusPrimaryText(context),
+                  color: isEnabled
+                      ? gradusPrimaryText(context)
+                      : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -204,6 +209,7 @@ class GradusFormActions extends StatelessWidget {
     this.isPrimaryDestructive = false,
     this.isSecondaryDestructive = false,
     this.isSecondaryEnabled = true,
+    this.isPrimaryEnabled = true,
   });
 
   final String primaryLabel;
@@ -213,6 +219,7 @@ class GradusFormActions extends StatelessWidget {
   final bool isPrimaryDestructive;
   final bool isSecondaryDestructive;
   final bool isSecondaryEnabled;
+  final bool isPrimaryEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -238,6 +245,7 @@ class GradusFormActions extends StatelessWidget {
               ? AppSecondaryButton(
                   text: primaryLabel,
                   size: AppButtonSize.medium,
+                  isEnabled: isPrimaryEnabled,
                   borderColor: destructive,
                   textColor: destructive,
                   onPressed: onPrimary,
@@ -245,6 +253,7 @@ class GradusFormActions extends StatelessWidget {
               : AppPrimaryButton(
                   text: primaryLabel,
                   size: AppButtonSize.medium,
+                  isEnabled: isPrimaryEnabled,
                   onPressed: onPrimary,
                 ),
         ),

@@ -129,6 +129,13 @@ Conventional prefix, lowercase, imperative: `feat:`, `fix:`, `docs:`, `chore:`,
 `fix(editor): keep draft on validation failure`. No period at the end, no issue
 numbers unless asked, no trailers.
 
+**Subject line only.** The reasoning behind a change belongs in the document
+that owns the subject, where it can be kept correct; a commit body repeats it
+somewhere nobody looks and nobody updates. Write a body only when the change is
+genuinely unreadable without one, and keep it to a line or two.
+
+Prefer one commit that covers a change to several that each cover a piece of it.
+
 ## What not to do
 
 - Do not put GPA concepts into `app_ui/`.

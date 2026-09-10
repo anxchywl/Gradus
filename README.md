@@ -1,10 +1,12 @@
 # Gradus
 
-Gradus is a GPA feature for university students, built to be mounted inside the
-university superapp. A student organises courses into semesters, grades each
-course from the assignments they enter by hand or reads them out of the course
-syllabus, and sees a credit-weighted average. The superapp owns identity; this
-feature never signs anyone in.
+Gradus is a GPA tracker for university students. A student organises courses
+into semesters, grades each course from the assignments they enter by hand or
+reads them out of the course syllabus, and sees a credit-weighted average.
+
+It runs on its own. The feature is packaged so it can also be mounted inside a
+larger host application later, and if it ever is, that host owns identity - the
+feature never signs anyone in and holds no account of its own.
 
 > **Partly specified, and nothing has shipped.** Transcripts live on the device
 > and nothing is stored server-side. Production authentication is written but
@@ -86,8 +88,14 @@ development machine:
 | `GRADUS_OPERATOR_ACCESS_TOKEN` | none | Distinct development operator token |
 
 Neither token has a default value, so a build that forgets one fails closed
-rather than opening with a known credential. Backend settings, including
-`ANTHROPIC_API_KEY` for syllabus extraction, are documented in
+rather than opening with a known credential.
+
+Syllabus extraction runs against one of four providers, selected by
+`SYLLABUS_PROVIDER` - `anthropic`, `openai`, `gemini` or `deepseek`. The last
+three speak the same wire protocol, so switching between them is a model id and
+an endpoint rather than a code change. The default pair is `gemini` and
+`gemini-3.1-flash-lite`, which is free within Google's rate limits rather than
+chosen on measured accuracy; moving is two lines of environment. Backend settings are documented in
 [.env.example](.env.example).
 
 ## Documentation
@@ -104,9 +112,9 @@ Each document owns its subject once; nothing is repeated.
 
 ## Limits worth knowing before reading further
 
-- No production authentication. The host resolver verifies a superapp JWT and
-  rejects every token until an issuer and a key are configured, and none of
-  those values has been agreed with the superapp yet.
+- No production authentication. The host resolver verifies a JWT and rejects
+  every token until an issuer and a key are configured. Nothing is configured,
+  so it authenticates nobody.
 - No server-side persistence and no database at all. A transcript lives on the
   student's own device, so reinstalling the app loses it, and there is nothing
   to back up.

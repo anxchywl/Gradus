@@ -80,23 +80,27 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
     );
   }
 
+  // a spinner on its own says that something is happening and never what, and
+  // it leaves the control with no accessible name for as long as it spins
   Widget _buildChild() {
-    if (widget.isLoading) {
-      return SizedBox(
-        width: AppSpacing.iconDf,
-        height: AppSpacing.iconDf,
-        child: const CircularProgressIndicator(
-          strokeWidth: 2.5,
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-        ),
-      );
-    }
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.icon != null) ...[widget.icon!, AppSpacing.horizontalSm],
+        if (widget.isLoading) ...[
+          const SizedBox(
+            width: AppSpacing.iconSm,
+            height: AppSpacing.iconSm,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+            ),
+          ),
+          AppSpacing.horizontalSm,
+        ] else if (widget.icon != null) ...[
+          widget.icon!,
+          AppSpacing.horizontalSm,
+        ],
         Flexible(
           child: Text(
             widget.text,

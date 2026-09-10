@@ -309,7 +309,7 @@ void main() {
   testWidgets('renders inside a host that registers no delegates of its own', (
     tester,
   ) async {
-    // the superapp may never have heard of this feature, it scopes its own
+    // a host may register no delegate of its own, so the feature scopes its own
     await tester.pumpWidget(
       MaterialApp(
         home: GradusFeature(

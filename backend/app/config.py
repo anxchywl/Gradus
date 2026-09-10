@@ -17,7 +17,7 @@ class AppEnvironment(StrEnum):
 SYLLABUS_EXTRACTION_PATH = "/api/v1/syllabus-extractions"
 
 # "none" is never here, and neither is any algorithm the issuer has not agreed
-SUPERAPP_ALGORITHMS = frozenset(
+HOST_ALGORITHMS = frozenset(
     {"RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "HS256", "HS384", "HS512"}
 )
 
@@ -25,6 +25,13 @@ SUPERAPP_ALGORITHMS = frozenset(
 class AuthAdapter(StrEnum):
     host = "host"
     development = "development"
+
+
+class SyllabusProvider(StrEnum):
+    anthropic = "anthropic"
+    openai = "openai"
+    gemini = "gemini"
+    deepseek = "deepseek"
 
 
 class Settings(BaseSettings):
@@ -56,38 +63,38 @@ class Settings(BaseSettings):
         max_length=255,
     )
 
-    # the superapp issues the token, this service only verifies it. with no
+    # the host issues the token, this service only verifies it. with no
     # issuer and no key the host resolver stays closed rather than open
-    superapp_jwt_issuer: str | None = Field(default=None, alias="SUPERAPP_JWT_ISSUER")
-    superapp_jwt_audience: str | None = Field(
+    host_jwt_issuer: str | None = Field(default=None, alias="HOST_JWT_ISSUER")
+    host_jwt_audience: str | None = Field(
         default=None,
-        alias="SUPERAPP_JWT_AUDIENCE",
+        alias="HOST_JWT_AUDIENCE",
     )
-    superapp_jwt_algorithm: str = Field(
+    host_jwt_algorithm: str = Field(
         default="RS256",
-        alias="SUPERAPP_JWT_ALGORITHM",
+        alias="HOST_JWT_ALGORITHM",
     )
-    superapp_jwt_public_key: str | None = Field(
+    host_jwt_public_key: str | None = Field(
         default=None,
-        alias="SUPERAPP_JWT_PUBLIC_KEY",
+        alias="HOST_JWT_PUBLIC_KEY",
     )
-    superapp_jwt_secret: SecretStr | None = Field(
+    host_jwt_secret: SecretStr | None = Field(
         default=None,
-        alias="SUPERAPP_JWT_SECRET",
+        alias="HOST_JWT_SECRET",
     )
-    superapp_subject_claim: str = Field(
+    host_subject_claim: str = Field(
         default="sub",
-        alias="SUPERAPP_SUBJECT_CLAIM",
+        alias="HOST_SUBJECT_CLAIM",
         min_length=1,
         max_length=64,
     )
-    superapp_operator_claim: str | None = Field(
+    host_operator_claim: str | None = Field(
         default=None,
-        alias="SUPERAPP_OPERATOR_CLAIM",
+        alias="HOST_OPERATOR_CLAIM",
     )
-    superapp_operator_value: str | None = Field(
+    host_operator_value: str | None = Field(
         default=None,
-        alias="SUPERAPP_OPERATOR_VALUE",
+        alias="HOST_OPERATOR_VALUE",
     )
 
     cors_allowed_origins: list[str] = Field(
@@ -103,15 +110,28 @@ class Settings(BaseSettings):
     )
     # syllabus extraction. with no key the endpoint refuses rather than the
     # service failing to start: health must stay answerable either way
-    anthropic_api_key: SecretStr | None = Field(
+    syllabus_api_key: SecretStr | None = Field(
         default=None,
-        alias="ANTHROPIC_API_KEY",
+        alias="SYLLABUS_API_KEY",
+    )
+    # a free tier with rate limits costs a prototype nothing, which beats a
+    # marginally cheaper per-token rate that still needs a card. a model that
+    # ignores the schema fails the call rather than answering badly, so the cost
+    # of being wrong here is a refusal, not a wrong grade
+    syllabus_provider: SyllabusProvider = Field(
+        default=SyllabusProvider.gemini,
+        alias="SYLLABUS_PROVIDER",
     )
     syllabus_model: str = Field(
-        default="claude-haiku-4-5",
+        default="gemini-3.1-flash-lite",
         alias="SYLLABUS_MODEL",
         min_length=1,
         max_length=128,
+    )
+    # only for an endpoint the profiles do not already know, such as a gateway
+    syllabus_base_url: str | None = Field(
+        default=None,
+        alias="SYLLABUS_BASE_URL",
     )
     syllabus_timeout_seconds: float = Field(
         default=45.0,
@@ -161,15 +181,13 @@ class Settings(BaseSettings):
     maximum_page_size: int = Field(default=50, alias="MAXIMUM_PAGE_SIZE", ge=1, le=200)
 
     @property
-    def superapp_auth_configured(self) -> bool:
-        has_key = bool(self.superapp_jwt_public_key) or (
-            self.superapp_jwt_secret is not None
-        )
-        return bool(self.superapp_jwt_issuer) and has_key
+    def host_auth_configured(self) -> bool:
+        has_key = bool(self.host_jwt_public_key) or (self.host_jwt_secret is not None)
+        return bool(self.host_jwt_issuer) and has_key
 
     @property
     def syllabus_extraction_configured(self) -> bool:
-        return self.anthropic_api_key is not None
+        return self.syllabus_api_key is not None
 
     # only the upload route may exceed the global cap, and it says so here
     # rather than in the middleware that enforces it
@@ -177,6 +195,14 @@ class Settings(BaseSettings):
         if path == SYLLABUS_EXTRACTION_PATH:
             return self.syllabus_document_max_bytes
         return self.request_body_max_bytes
+
+    # the syllabus text travels over this, so it is never plain http
+    @field_validator("syllabus_base_url")
+    @classmethod
+    def _base_url_is_https(cls, value: str | None) -> str | None:
+        if value is not None and urlsplit(value).scheme != "https":
+            raise ValueError("SYLLABUS_BASE_URL must be https")
+        return value
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod
@@ -229,34 +255,31 @@ class Settings(BaseSettings):
                 and parsed.scheme != "https"
             ):
                 raise ValueError("CORS origins must use HTTPS in production")
-        if self.superapp_auth_configured:
-            algorithm = self.superapp_jwt_algorithm.upper()
-            if algorithm not in SUPERAPP_ALGORITHMS:
-                raise ValueError("SUPERAPP_JWT_ALGORITHM is not an allowed algorithm")
+        if self.host_auth_configured:
+            algorithm = self.host_jwt_algorithm.upper()
+            if algorithm not in HOST_ALGORITHMS:
+                raise ValueError("HOST_JWT_ALGORITHM is not an allowed algorithm")
             # an rsa public key handed to an hmac verifier is the classic
             # algorithm-confusion forgery, so the family must match the material
             if algorithm.startswith("HS"):
-                if self.superapp_jwt_public_key:
+                if self.host_jwt_public_key:
                     raise ValueError(
-                        "SUPERAPP_JWT_PUBLIC_KEY cannot be used with an HS algorithm"
+                        "HOST_JWT_PUBLIC_KEY cannot be used with an HS algorithm"
                     )
-                secret = self.superapp_jwt_secret
+                secret = self.host_jwt_secret
                 if secret is None:
-                    raise ValueError(
-                        "SUPERAPP_JWT_SECRET is required for an HS algorithm"
-                    )
+                    raise ValueError("HOST_JWT_SECRET is required for an HS algorithm")
                 if len(secret.get_secret_value().encode()) < 32:
                     raise ValueError(
-                        "SUPERAPP_JWT_SECRET must be at least 32 bytes for an "
-                        "HS algorithm"
+                        "HOST_JWT_SECRET must be at least 32 bytes for an HS algorithm"
                     )
-            elif not self.superapp_jwt_public_key:
+            elif not self.host_jwt_public_key:
                 raise ValueError(
-                    "SUPERAPP_JWT_PUBLIC_KEY is required for an asymmetric algorithm"
+                    "HOST_JWT_PUBLIC_KEY is required for an asymmetric algorithm"
                 )
-            if bool(self.superapp_operator_claim) != bool(self.superapp_operator_value):
+            if bool(self.host_operator_claim) != bool(self.host_operator_value):
                 raise ValueError(
-                    "SUPERAPP_OPERATOR_CLAIM and SUPERAPP_OPERATOR_VALUE are set "
+                    "HOST_OPERATOR_CLAIM and HOST_OPERATOR_VALUE are set "
                     "together or not at all"
                 )
         if self.default_page_size > self.maximum_page_size:

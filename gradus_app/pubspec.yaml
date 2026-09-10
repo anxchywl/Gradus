@@ -1,7 +1,7 @@
 name: gradus_app
 description: >-
   Standalone host for Gradus. Scaffolding for running the feature
-  without the superapp; it is not what ships.
+  without a host application; it is not what ships.
 
 publish_to: none
 version: 0.1.0

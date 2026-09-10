@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import anthropic
 from pydantic import BaseModel, Field
 
 from app.domain.syllabus import (
@@ -9,6 +8,7 @@ from app.domain.syllabus import (
     SyllabusDraft,
     build_draft,
 )
+from app.infrastructure.syllabus.clients import ModelCallError, StructuredModelClient
 
 # the document is data. it is quoted, never followed, and the model is given
 # nothing it could act with even if the document asked it to
@@ -52,57 +52,57 @@ class ExtractedSyllabus(BaseModel):
     )
 
 
+def request_for(text: str) -> str:
+    return (
+        "Extract the course details from the syllabus between the markers.\n"
+        "<syllabus>\n"
+        f"{text}\n"
+        "</syllabus>"
+    )
+
+
+def draft_from(parsed: ExtractedSyllabus) -> SyllabusDraft:
+    return build_draft(
+        code=parsed.code,
+        title=parsed.title,
+        credit_count=parsed.credits,
+        credit_unit=parsed.credit_unit,
+        term=parsed.term,
+        assessments=[
+            (assessment.name, assessment.weight)
+            for assessment in parsed.assessments[:MAXIMUM_ASSESSMENTS]
+        ],
+    )
+
+
 class ModelSyllabusExtractor:
     def __init__(
         self,
-        client: anthropic.AsyncAnthropic,
+        client: StructuredModelClient,
         *,
-        model: str,
         maximum_output_tokens: int,
     ) -> None:
         self._client = client
-        self._model = model
         self._maximum_output_tokens = maximum_output_tokens
 
     async def extract(self, text: str) -> SyllabusDraft:
         try:
-            response = await self._client.messages.parse(
-                model=self._model,
-                max_tokens=self._maximum_output_tokens,
+            result = await self._client.complete(
                 system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": self._request(text)}],
-                output_format=ExtractedSyllabus,
+                user=request_for(text),
+                schema=ExtractedSyllabus,
+                maximum_output_tokens=self._maximum_output_tokens,
             )
-        except anthropic.APIError as error:
-            # the upstream message may quote the document, so none of it travels
+        except ModelCallError as error:
             raise ExtractionUnavailableError(
                 "extraction_unavailable",
                 "The syllabus could not be read right now.",
             ) from error
 
-        parsed = response.parsed_output
-        if parsed is None:
+        if result.parsed is None:
             raise ExtractionUnavailableError(
                 "extraction_unavailable",
                 "The syllabus could not be read right now.",
             )
 
-        return build_draft(
-            code=parsed.code,
-            title=parsed.title,
-            credit_count=parsed.credits,
-            credit_unit=parsed.credit_unit,
-            term=parsed.term,
-            assessments=[
-                (assessment.name, assessment.weight)
-                for assessment in parsed.assessments[:MAXIMUM_ASSESSMENTS]
-            ],
-        )
-
-    def _request(self, text: str) -> str:
-        return (
-            "Extract the course details from the syllabus between the markers.\n"
-            "<syllabus>\n"
-            f"{text}\n"
-            "</syllabus>"
-        )
+        return draft_from(result.parsed)

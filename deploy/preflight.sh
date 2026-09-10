@@ -23,9 +23,9 @@ value_of() {
 
 # a service nobody can authenticate against is not worth deploying, and the
 # resolver would reject every request rather than say why
-[ -n "$(value_of SUPERAPP_JWT_ISSUER)" ] || fail "SUPERAPP_JWT_ISSUER is required"
-if [ -z "$(value_of SUPERAPP_JWT_PUBLIC_KEY)" ] && [ -z "$(value_of SUPERAPP_JWT_SECRET)" ]; then
-  fail "a superapp signing key or shared secret is required"
+[ -n "$(value_of HOST_JWT_ISSUER)" ] || fail "HOST_JWT_ISSUER is required"
+if [ -z "$(value_of HOST_JWT_PUBLIC_KEY)" ] && [ -z "$(value_of HOST_JWT_SECRET)" ]; then
+  fail "a host signing key or shared secret is required"
 fi
 
 [ -n "$(value_of GRADUS_API_DOMAIN)" ] || fail "GRADUS_API_DOMAIN is required"

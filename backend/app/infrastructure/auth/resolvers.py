@@ -19,23 +19,23 @@ class UnavailableHostPrincipalResolver:
         )
 
 
-# verifies what the superapp issued; it never mints, refreshes or stores a token
-class SuperappPrincipalResolver:
+# verifies what the host issued; it never mints, refreshes or stores a token
+class HostPrincipalResolver:
     def __init__(self, settings: Settings) -> None:
-        issuer = settings.superapp_jwt_issuer
-        secret = settings.superapp_jwt_secret
-        key = settings.superapp_jwt_public_key or (
+        issuer = settings.host_jwt_issuer
+        secret = settings.host_jwt_secret
+        key = settings.host_jwt_public_key or (
             secret.get_secret_value() if secret is not None else None
         )
         if not issuer or not key:
-            raise ValueError("superapp authentication is not configured")
+            raise ValueError("host authentication is not configured")
         self._issuer = issuer
         self._key = key
-        self._audience = settings.superapp_jwt_audience
-        self._algorithm = settings.superapp_jwt_algorithm.upper()
-        self._subject_claim = settings.superapp_subject_claim
-        self._operator_claim = settings.superapp_operator_claim
-        self._operator_value = settings.superapp_operator_value
+        self._audience = settings.host_jwt_audience
+        self._algorithm = settings.host_jwt_algorithm.upper()
+        self._subject_claim = settings.host_subject_claim
+        self._operator_claim = settings.host_operator_claim
+        self._operator_value = settings.host_operator_value
 
     async def resolve(self, token: str) -> ExternalIdentity:
         if not token:
@@ -125,6 +125,6 @@ class DevelopmentPrincipalResolver:
 def create_principal_resolver(settings: Settings) -> TokenIdentityResolver:
     if settings.auth_adapter == AuthAdapter.development:
         return DevelopmentPrincipalResolver(settings)
-    if settings.superapp_auth_configured:
-        return SuperappPrincipalResolver(settings)
+    if settings.host_auth_configured:
+        return HostPrincipalResolver(settings)
     return UnavailableHostPrincipalResolver()

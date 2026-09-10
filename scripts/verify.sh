@@ -8,8 +8,8 @@ echo "==> backend"
 (
   cd backend
   uv sync --frozen --extra dev >/dev/null
-  uv run --frozen ruff format --check app tests
-  uv run --frozen ruff check app tests
+  uv run --frozen ruff format --check app evals tests
+  uv run --frozen ruff check app evals tests
   uv run --frozen mypy app
   uv run --frozen bandit -q -r app
   uv run --frozen pytest --cov=app --cov-report=term-missing --cov-fail-under=90 -q

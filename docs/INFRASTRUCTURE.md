@@ -85,7 +85,7 @@ environment.
 
 ## Secrets
 
-`ANTHROPIC_API_KEY` is the only credential this service holds. It lives in
+`SYLLABUS_API_KEY` is the only credential this service holds. It lives in
 `.env.production` on the server as a `SecretStr`, is never compiled into a client
 build, and with it absent the extraction endpoint refuses rather than the service
 failing to start.
@@ -97,6 +97,47 @@ run.
 
 Development tokens have no default value, for the reason given under
 [development access](./ARCHITECTURE.md#development-access).
+
+## Choosing an extraction model
+
+`SYLLABUS_PROVIDER` selects one of `anthropic`, `openai`, `gemini` or
+`deepseek`. The last three speak the same wire protocol, so they share one
+adapter and differ only by endpoint and model id; only the first has ever made
+a real call.
+
+Which one to use is an accuracy question, not a price question. At any plausible
+number of students the difference between the cheapest and the dearest option is
+tens of dollars a year, and what varies between them is whether they find the
+right assessment table in a document that buries it among four other tables.
+`backend/evals/` answers that question with measurements.
+
+```bash
+cd backend
+SYLLABUS_API_KEY=... uv run python -m evals.run \
+  --provider gemini --model gemini-3.1-flash-lite \
+  --repeat 3 --price-in 0.25 --price-out 1.50
+```
+
+It runs the same reader, prompt and schema the service uses, so what it measures
+is the pipeline rather than a copy of it. Each case is one document:
+`evals/cases/<name>.json` holds the expected values, and the PDF it names sits in
+`evals/corpus/`, which is **not committed** - a syllabus carries an instructor's
+name and contact details, and the expectations are enough to reproduce a run
+without it. A case whose document is absent is skipped rather than failed.
+
+The same course from another instructor, or the same instructor in another term,
+is a **separate case**: the assessment table changes with both. Name cases so that
+is visible, as in `math273-2026f-a`, and set `template` so the report can group
+documents that share a layout apart from the free-form ones.
+
+A run is scored on the assessment table first, because that is what the import
+exists for. Weights are compared as a multiset: rows named differently still
+count, and a table whose rows were split or invented does not, even when the
+total still reaches 100. `--repeat` runs every case several times, since one
+sample of a model is an anecdote.
+
+This costs money on every run, so it is not part of `verify.sh` and CI never
+runs it.
 
 ## Adding user-facing text
 
@@ -126,8 +167,8 @@ flutter build apk --release
 ```
 
 A release build carries no development define and no token, so it refuses to
-open on its own. That is correct: what ships is the feature mounted inside the
-superapp, not this host.
+open on its own. That is correct: what ships is the feature itself, not this
+development scaffolding.
 
 ## Environments
 
@@ -138,13 +179,13 @@ superapp, not this host.
 | Staging | `production` | `host` | disabled |
 | Production | `production` | `host` | disabled |
 
-Staging and production both require the superapp's issuer and signing key, and
+Staging and production both require a host issuer and signing key, and
 `deploy/preflight.sh` refuses to ship without them.
 
 ## Deployment
 
 The service is stateless: one container, no database, no volume, nothing to
-migrate and nothing to restore. It needs `ANTHROPIC_API_KEY` in its environment
+migrate and nothing to restore. It needs `SYLLABUS_API_KEY` in its environment
 to read a syllabus; without one it starts and serves health, and the extraction
 endpoint refuses. It shares a host with four other projects, so it
 is capped at 256 MiB and publishes no port of its own.
@@ -158,7 +199,7 @@ it does, the service joins that proxy's network for ingress only through
 `docker/docker-compose.shared-host.yml`; if it does not, it publishes its own
 port. Preflight runs first and refuses a dirty tree, a non-production `APP_ENV`,
 a development adapter, a development token, enabled API documentation, a missing
-superapp key, or a missing proxy network. A failed deployment restores the
+host key, or a missing proxy network. A failed deployment restores the
 previous image.
 
 The proxy needs a site block for `GRADUS_API_DOMAIN` reverse-proxying
@@ -172,7 +213,7 @@ Deliberately absent, so nobody assumes otherwise:
 
 - **A released deployment.** The scripts exist and refuse to ship anything
   unsafe, but nothing has shipped: `gradus.anxchywl.dev` has no DNS record, and
-  preflight refuses to deploy without a superapp issuer and key. Images are also
+  preflight refuses to deploy without a host issuer and key. Images are also
   still built on the host rather than in CI.
 - **Migrations and backups.** Neither exists, because nothing is stored. If
   server-side persistence is ever chosen (open decision 3 in PRODUCT.md), both

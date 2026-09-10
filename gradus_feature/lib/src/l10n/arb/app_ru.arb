@@ -74,6 +74,7 @@
   "creditsRatio": "{quality} из {attempted}",
   "importFromSyllabus": "Заполнить из силлабуса",
   "importRunning": "Читаем силлабус",
+  "importStillRunning": "Ещё читаем, это может занять время",
   "importNote": "Файл отправляется на сервер Gradus и читается там. Проверьте заполненное перед сохранением.",
   "importMissingFields": "Не найдено в силлабусе: {fields}",
   "importedAssignments": "Из силлабуса",

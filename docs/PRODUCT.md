@@ -12,9 +12,9 @@ not treat an assumption here as a rule, and do not implement one without asking.
 
 ## What is known
 
-A GPA tool for university students, mounted inside the university superapp as
-one feature among several. The superapp owns identity; this feature never signs
-anyone in.
+A GPA tool for university students, running on its own. It is packaged so it
+can be mounted inside a larger host application later; if it is, that host owns
+identity and this feature still never signs anyone in.
 
 Implemented: semesters, each holding courses; add, edit and delete a course with
 a code, title, credit weight and an optional letter chosen by hand; add, edit and
@@ -55,9 +55,18 @@ instructor's Word document that states credits in a sentence and carries four
 other assessment-shaped tables - a weekly schedule, a table of contents, a
 percentage-range grading table, and policy prose about late penalties. A rule
 parser finds the wrong table before the right one, and fails worst on exactly
-the document that needs it most. So the file is read on the server by
-`claude-haiku-4-5`, at roughly a cent per import, and the model id is
-configuration rather than code.
+the document that needs it most. The same course changes shape again between
+instructors and between terms, so there is no stable layout to parse even within
+one course code.
+
+So the file is read on the server by a model. Which model is configuration
+rather than code - the provider and the model id are both settings, and four
+providers are supported. The default is free to run within its provider's rate
+limits, and reads the three syllabi in `backend/evals/` exactly: every field and
+every assessment row, on three repeats each. That is a real result on a small
+sample rather than a guarantee - three documents across two layouts - so a
+document unlike them is still an open question, and about a cent per import buys
+the answer for any candidate that replaces it.
 
 The document is untrusted input in a prompt, and is treated as such: quoted
 between markers, declared as data rather than instructions, with no tools on the
@@ -105,8 +114,8 @@ it is displayed.
   fail-without-penalty, transfer credit. The scale marks such a letter with
   `Grade.countsTowardGpa`, and `CourseGrade.weighsOnGpa` carries it through: the
   credit is attempted, the quality points are not awarded.
-- An operator role exists, because the superapp distinguishes one. What an
-  operator can actually do here is undecided.
+- An operator role exists in the authentication seam, distinct from a student.
+  What an operator can actually do here is undecided.
 
 ## Open decisions
 
@@ -163,8 +172,9 @@ Each of these changes what gets built. None should be guessed.
    though it were a forecast. `Max possible` is a bound, not a prediction, and
    says so on screen. A target-driven projection - "what must I score to reach
    3.5" - is a different calculation and still undecided.
-7. **How the superapp mounts this** - a tab or a route - which decides whether
-   the feature keeps its own navigation.
+7. **How a host would mount this** - a tab or a route - which decides whether
+   the feature keeps its own navigation. The standalone prototype does not have
+   to answer this, but the answer changes the presentation layer when it comes.
 
 ## What is deliberately not here
 

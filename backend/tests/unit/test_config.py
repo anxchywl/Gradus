@@ -86,57 +86,79 @@ def test_request_body_limit_is_bounded() -> None:
         settings(REQUEST_BODY_MAX_BYTES=1)
 
 
-def test_superapp_auth_needs_both_an_issuer_and_a_key() -> None:
+def test_host_auth_needs_both_an_issuer_and_a_key() -> None:
     # half a configuration must leave the host resolver closed, not open
-    issuer_only = settings(SUPERAPP_JWT_ISSUER="https://superapp.example.edu")
-    key_only = settings(SUPERAPP_JWT_SECRET="s" * 32)
+    issuer_only = settings(HOST_JWT_ISSUER="https://host.example.edu")
+    key_only = settings(HOST_JWT_SECRET="s" * 32)
 
-    assert issuer_only.superapp_auth_configured is False
-    assert key_only.superapp_auth_configured is False
+    assert issuer_only.host_auth_configured is False
+    assert key_only.host_auth_configured is False
 
 
 def test_an_unlisted_signing_algorithm_is_refused() -> None:
     for algorithm in ("none", "NONE", "PS256"):
         with pytest.raises(PydanticValidationError, match="not an allowed algorithm"):
             settings(
-                SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
-                SUPERAPP_JWT_ALGORITHM=algorithm,
-                SUPERAPP_JWT_SECRET="s" * 32,
+                HOST_JWT_ISSUER="https://host.example.edu",
+                HOST_JWT_ALGORITHM=algorithm,
+                HOST_JWT_SECRET="s" * 32,
             )
 
 
 def test_a_public_key_cannot_be_used_as_an_hmac_secret() -> None:
     with pytest.raises(PydanticValidationError, match="cannot be used with an HS"):
         settings(
-            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
-            SUPERAPP_JWT_ALGORITHM="HS256",
-            SUPERAPP_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----",
+            HOST_JWT_ISSUER="https://host.example.edu",
+            HOST_JWT_ALGORITHM="HS256",
+            HOST_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----",
         )
 
 
 def test_a_short_shared_secret_is_refused() -> None:
     with pytest.raises(PydanticValidationError, match="at least 32 bytes"):
         settings(
-            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
-            SUPERAPP_JWT_ALGORITHM="HS256",
-            SUPERAPP_JWT_SECRET="too-short",
+            HOST_JWT_ISSUER="https://host.example.edu",
+            HOST_JWT_ALGORITHM="HS256",
+            HOST_JWT_SECRET="too-short",
         )
 
 
 def test_an_asymmetric_algorithm_requires_a_public_key() -> None:
     with pytest.raises(PydanticValidationError, match="PUBLIC_KEY is required"):
         settings(
-            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
-            SUPERAPP_JWT_ALGORITHM="RS256",
-            SUPERAPP_JWT_SECRET="s" * 32,
+            HOST_JWT_ISSUER="https://host.example.edu",
+            HOST_JWT_ALGORITHM="RS256",
+            HOST_JWT_SECRET="s" * 32,
         )
 
 
 def test_an_operator_claim_and_its_value_are_set_together() -> None:
     with pytest.raises(PydanticValidationError, match="together or not at all"):
         settings(
-            SUPERAPP_JWT_ISSUER="https://superapp.example.edu",
-            SUPERAPP_JWT_ALGORITHM="HS256",
-            SUPERAPP_JWT_SECRET="s" * 32,
-            SUPERAPP_OPERATOR_CLAIM="role",
+            HOST_JWT_ISSUER="https://host.example.edu",
+            HOST_JWT_ALGORITHM="HS256",
+            HOST_JWT_SECRET="s" * 32,
+            HOST_OPERATOR_CLAIM="role",
         )
+
+
+def test_extraction_is_unconfigured_until_a_key_is_supplied() -> None:
+    assert not settings().syllabus_extraction_configured
+    assert settings(SYLLABUS_API_KEY="k").syllabus_extraction_configured
+
+
+def test_a_plain_http_model_endpoint_is_refused() -> None:
+    # the syllabus text travels over this connection
+    with pytest.raises(PydanticValidationError, match="must be https"):
+        settings(SYLLABUS_BASE_URL="http://models.example.com/v1")
+
+
+def test_an_https_model_endpoint_is_accepted() -> None:
+    configured = settings(SYLLABUS_BASE_URL="https://models.example.com/v1")
+
+    assert configured.syllabus_base_url == "https://models.example.com/v1"
+
+
+def test_a_provider_outside_the_supported_set_is_refused() -> None:
+    with pytest.raises(PydanticValidationError):
+        settings(SYLLABUS_PROVIDER="a-model-someone-heard-about")

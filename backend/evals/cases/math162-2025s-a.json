@@ -1,0 +1,17 @@
+{
+  "document": "math162-2025s-a.pdf",
+  "template": "nu-course-spec-form",
+  "expected": {
+    "code": "MATH 162",
+    "title": "Calculus II",
+    "credits": 8,
+    "credit_unit": "ECTS",
+    "term": "Spring 2025",
+    "assessments": [
+      {"name": "Test 1", "weight": 30},
+      {"name": "Test 2", "weight": 30},
+      {"name": "Test 3", "weight": 30},
+      {"name": "Webwork", "weight": 10}
+    ]
+  }
+}

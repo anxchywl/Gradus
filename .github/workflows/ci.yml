@@ -69,11 +69,11 @@ jobs:
 
       - name: Check backend formatting
         working-directory: backend
-        run: uv run --frozen ruff format --check app tests
+        run: uv run --frozen ruff format --check app evals tests
 
       - name: Lint backend
         working-directory: backend
-        run: uv run --frozen ruff check app tests
+        run: uv run --frozen ruff check app evals tests
 
       - name: Type-check backend
         working-directory: backend

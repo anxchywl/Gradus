@@ -6,8 +6,8 @@ and wire-shape decisions.
 
 ## Current implementation
 
-Only the health checks exist. No feature endpoint has been written, because the
-product is not specified.
+Syllabus extraction and the health checks. No transcript endpoint exists,
+because whether anything is stored server-side is still open.
 
 | Endpoint | Authentication | Purpose |
 |---|---|---|

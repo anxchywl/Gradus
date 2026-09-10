@@ -7,7 +7,7 @@ import 'dev/dev_gate.dart';
 
 void main() => runApp(const GradusHostApp());
 
-// the production host is the superapp, this one runs the feature on its own
+// a real host would own identity and navigation, this one runs the feature alone
 class GradusHostApp extends StatefulWidget {
   const GradusHostApp({super.key});
 

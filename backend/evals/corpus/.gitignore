@@ -1,0 +1,3 @@
+# real syllabi are not committed; drop the pdfs named by evals/cases/*.json here
+*
+!.gitignore
