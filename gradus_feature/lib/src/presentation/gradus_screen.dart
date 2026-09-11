@@ -39,6 +39,7 @@ class _GpaScreenState extends State<GradusScreen> {
 
     final semester = await showModalBottomSheet<Semester>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       // mounted on the host overlay, so the delegate is installed again
       builder: (_) => GradusStringsScope(
@@ -77,6 +78,7 @@ class _GpaScreenState extends State<GradusScreen> {
 
     final course = await showModalBottomSheet<Course>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       builder: (_) => GradusStringsScope(
         child: CourseForm(
@@ -424,9 +426,15 @@ class _Body extends StatelessWidget {
     final strings = GradusStrings.of(context);
     final scale = controller.scale!;
 
+    // one graded course is enough for the rest to keep the badge's room
+    final anyGraded = controller.allCourses.any(
+      (course) => calculateCourseGrade(course, scale).grade != null,
+    );
+
     Widget card(Course course) => _CourseCard(
       course: course,
       resolved: calculateCourseGrade(course, scale),
+      reservesBadge: anyGraded,
       onOpen: () => onOpen(course),
     );
 
@@ -486,11 +494,16 @@ class _CourseCard extends StatelessWidget {
   const _CourseCard({
     required this.course,
     required this.resolved,
+    required this.reservesBadge,
     required this.onOpen,
   });
 
   final Course course;
   final CourseGrade resolved;
+
+  // true when another course has a badge, so this one keeps its room and the
+  // titles stay in one column
+  final bool reservesBadge;
   final VoidCallback onOpen;
 
   @override
@@ -503,11 +516,17 @@ class _CourseCard extends StatelessWidget {
         // the name sits level with the letter it belongs to
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GradusGradeBadge(
-            letter: formatLetter(strings, resolved),
-            countsTowardGpa: resolved.weighsOnGpa,
-          ),
-          AppSpacing.horizontalMd,
+          // a course with no grade yet carries no badge, and no dash for one
+          if (resolved.grade != null) ...[
+            GradusGradeBadge(
+              letter: resolved.grade!.letter,
+              countsTowardGpa: resolved.weighsOnGpa,
+            ),
+            AppSpacing.horizontalMd,
+          ] else if (reservesBadge) ...[
+            const SizedBox(width: AppSpacing.avatarLg),
+            AppSpacing.horizontalMd,
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

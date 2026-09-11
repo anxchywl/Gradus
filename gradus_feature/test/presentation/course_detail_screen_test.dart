@@ -285,6 +285,8 @@ void main() {
     await _openCourse(tester);
 
     await _openAssignment(tester, 'Midterm');
+    await tester.ensureVisible(find.text('Delete'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
@@ -292,6 +294,8 @@ void main() {
     expect(repository.transcript.courses.single.assignments, hasLength(2));
 
     await _openAssignment(tester, 'Midterm');
+    await tester.ensureVisible(find.text('Delete'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(find.text('Delete this assignment?'), findsOneWidget);
@@ -427,14 +431,37 @@ void main() {
     await _openCourse(tester);
 
     expect(find.text('Midterm'), findsOneWidget);
-    // the muted letter already says it is unmarked; a dash beside it repeats
+    // nothing is marked, so there is no letter and no stand-in for one
     expect(
       find.descendant(
         of: find.widgetWithText(AppCard, 'Midterm'),
         matching: find.text('—'),
       ),
-      findsOneWidget,
-      reason: 'the letter keeps its placeholder, the percentage is dropped',
+      findsNothing,
+    );
+  });
+
+  testWidgets('an unmarked row keeps the badge column beside a marked one', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        _FakeTranscriptRepository(
+          _transcript(
+            assignments: [
+              _assignment('a1', 'Midterm', earnedScore: 80),
+              _assignment('a2', 'Final'),
+            ],
+          ),
+        ),
+      ),
+    );
+    await _openCourse(tester);
+
+    // the names stay in one column whichever rows are marked
+    expect(
+      tester.getTopLeft(find.text('Final')).dx,
+      tester.getTopLeft(find.text('Midterm')).dx,
     );
   });
 
@@ -489,7 +516,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapAddAssignment(tester);
-    await tester.tap(find.text('Cancel'));
+    // the sheet has no cancel of its own; it is left by tapping outside it
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('CSCI 235'), findsOneWidget);
@@ -563,39 +591,7 @@ void main() {
     expect(credits.dx, greaterThan(maximum.dx));
   });
 
-  testWidgets('Done leaves focus mode once for good', (tester) async {
-    await tester.pumpWidget(_host(_FakeTranscriptRepository(_transcript())));
-    await _openCourse(tester);
-    await _tapAddAssignment(tester);
-
-    Finder inForm(String text) => find.descendant(
-      of: find.byType(AssignmentForm),
-      matching: find.text(text),
-    );
-
-    // nothing in a widget test raises the view's insets on its own
-    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(tester.view.reset);
-    await tester.pumpAndSettle();
-    await tester.testTextInput.receiveAction(TextInputAction.next);
-    await tester.pumpAndSettle();
-
-    expect(inForm('Assignment name'), findsNothing);
-
-    await tester.tap(inForm('Done'));
-    await tester.pumpAndSettle();
-
-    expect(
-      inForm('Save'),
-      findsOneWidget,
-      reason:
-          'the form opens on its first field, and that field coming back '
-          'must not take the keyboard again',
-    );
-    expect(inForm('Done'), findsNothing);
-  });
-
-  testWidgets('a score keeps its total beside it while the keyboard is up', (
+  testWidgets('a field with the keyboard up leaves the assignment form whole', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_FakeTranscriptRepository(_transcript())));
@@ -613,16 +609,16 @@ void main() {
     await tester.tap(find.byType(TextFormField).at(2));
     await tester.pumpAndSettle();
 
-    expect(inForm('Weight'), findsNothing);
-    expect(inForm('Save'), findsNothing);
-    expect(inForm('Done'), findsOneWidget);
-    expect(
-      inForm('Max score'),
-      findsOneWidget,
-      reason:
-          'a mark and the total it is out of are one field to a student, '
-          'so folding one away leaves the other meaningless',
-    );
-    expect(inForm('Obtained score'), findsOneWidget);
+    // typing into one field folds nothing else away, and Save stays Save
+    for (final label in const [
+      'Assignment name',
+      'Weight',
+      'Max score',
+      'Obtained score',
+      'Save',
+    ]) {
+      expect(inForm(label), findsOneWidget, reason: label);
+    }
+    expect(inForm('Done'), findsNothing);
   });
 }

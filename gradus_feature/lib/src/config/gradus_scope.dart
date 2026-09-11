@@ -40,12 +40,14 @@ GradusDependencies createSampleDependencies() => GradusDependencies(
 GradusDependencies createLocalDependencies({
   required String accountId,
   GradeScale scale = const FourPointScale(),
+  SyllabusImporter? syllabus,
 }) => GradusDependencies(
   transcript: PreferencesTranscriptRepository(
     accountId: accountId,
     scale: scale,
   ),
   scales: StaticGradeScaleRepository(scale),
+  syllabus: syllabus,
 );
 
 // the controller is owned by GradusFeature, so a rebuild above cannot swap it

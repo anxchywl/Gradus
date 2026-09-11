@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../domain/semester.dart';
 import '../l10n/gradus_strings.dart';
-import 'focus_mode.dart';
 import 'gradus_widgets.dart';
-
-enum _Field { name }
 
 class SemesterForm extends StatefulWidget {
   const SemesterForm({
@@ -35,13 +32,11 @@ class _SemesterFormState extends State<SemesterForm> {
   late final TextEditingController _name = TextEditingController(
     text: widget.existing?.name ?? '',
   );
-  final SheetFocusMode _focus = SheetFocusMode();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
     _name.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -73,84 +68,64 @@ class _SemesterFormState extends State<SemesterForm> {
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
-    return ListenableBuilder(
-      listenable: _focus,
-      builder: (context, _) {
-        _focus.setKeyboardVisible(MediaQuery.viewInsetsOf(context).bottom > 0);
-        return Padding(
-          // no AnimatedPadding, the platform already animates this inset
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: SingleChildScrollView(
-            padding: gradusSheetPadding(context),
-            child: FocusModeBody(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FocusFold(
-                      hidden: _focus.hidesChrome,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          GradusSheetTitle(
-                            text: widget.existing == null
-                                ? strings.addSemester
-                                : strings.editSemester,
-                          ),
-                          AppSpacing.verticalDf,
-                        ],
-                      ),
-                    ),
-                    TextFormField(
-                      controller: _name,
-                      focusNode: _focus.nodeFor(_Field.name),
-                      autofocus: _focus.takeAutofocus(),
-                      decoration: InputDecoration(
-                        labelText: strings.semesterName,
-                      ),
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _submit(),
-                      validator: (value) => (value ?? '').trim().isEmpty
-                          ? strings.semesterNameRequired
-                          : null,
-                    ),
-                    AppSpacing.verticalXl,
-                    FocusModeActions(
-                      isTyping: _focus.isTyping,
-                      doneLabel: strings.done,
-                      onDone: _focus.release,
-                      actions: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          GradusFormActions(
-                            primaryLabel: strings.save,
-                            onPrimary: _submit,
-                            secondaryLabel: widget.onDelete == null
-                                ? strings.cancel
-                                : strings.delete,
-                            onSecondary: _dismiss,
-                            isSecondaryDestructive: widget.onDelete != null,
-                            isSecondaryEnabled:
-                                widget.onDelete == null || widget.canDelete,
-                          ),
-                          if (widget.onDelete != null && !widget.canDelete) ...[
-                            AppSpacing.verticalSm,
-                            GradusNote(text: strings.deleteSemesterBlocked),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: gradusSheetPadding(context),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GradusSheetTitle(
+                    text: widget.existing == null
+                        ? strings.addSemester
+                        : strings.editSemester,
+                  ),
+                  AppSpacing.verticalDf,
+                ],
+              ),
+              GradusField(
+                label: strings.semesterName,
+                child: TextFormField(
+                  controller: _name,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
+                  validator: (value) => (value ?? '').trim().isEmpty
+                      ? strings.semesterNameRequired
+                      : null,
                 ),
               ),
-            ),
+              AppSpacing.verticalXl,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GradusFormActions(
+                    primaryLabel: strings.save,
+                    onPrimary: _submit,
+                    secondaryLabel: widget.onDelete == null
+                        ? null
+                        : strings.delete,
+                    onSecondary: widget.onDelete == null ? null : _dismiss,
+                    isSecondaryDestructive: true,
+                    isSecondaryEnabled:
+                        widget.onDelete == null || widget.canDelete,
+                  ),
+                  if (widget.onDelete != null && !widget.canDelete) ...[
+                    AppSpacing.verticalSm,
+                    GradusNote(text: strings.deleteSemesterBlocked),
+                  ],
+                ],
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

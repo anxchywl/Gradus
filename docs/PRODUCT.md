@@ -31,8 +31,9 @@ A student adding a course can pick its syllabus instead of typing it. The
 file is read on the server and comes back as a proposal: course code, title,
 credit value with the unit as printed, and one assignment per row of the
 assessment table with its weight. Nothing is applied on its own - the fields are
-filled in for the student to check, entries can be dropped, and nothing is stored
-until Save.
+filled in for the student to check, and nothing is stored until Save. The
+assignments it found are not listed in the form; they are reviewed on the course
+once it is saved, where each can be edited or removed like any other.
 
 - The letter grade stays unset and every score stays unmarked. Marks are the
   student's to enter; the import only sets up what to enter them against.
@@ -43,8 +44,9 @@ until Save.
   and is not one of ours to invent.
 - A field the syllabus did not state is left empty and named on screen. Syllabi
   share no layout, so a partial fill is normal rather than a failure.
-- Weights are shown as they were read. A set totalling over 100 is flagged and
-  blocks Save until the student drops an entry; it is never quietly scaled.
+- Weights are kept as they were read. A set totalling over 100 is not kept at
+  all: the course is saved without it and the card says why. Scaling the
+  weights, or trimming an entry to fit, would be a guess.
 - The grading table in a syllabus is not imported. Which scale applies is open
   decision 1 below.
 

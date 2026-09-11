@@ -117,12 +117,6 @@ Future<void> _openCourse(WidgetTester tester, String title) async {
   await tester.pumpAndSettle();
 }
 
-// nothing in a widget test raises the view insets on its own
-void _raiseKeyboard(WidgetTester tester) {
-  tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-  addTearDown(tester.view.reset);
-}
-
 // the screen behind the sheet carries the same words
 Finder _inCourseForm(String text) =>
     find.descendant(of: find.byType(CourseForm), matching: find.text(text));
@@ -442,6 +436,10 @@ void main() {
 
       expect(find.text('Move or delete its courses first'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Delete'));
+
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
@@ -602,9 +600,9 @@ void main() {
       await tester.tap(find.widgetWithText(AppPrimaryButton, 'Add course'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).at(0), 'MATH 273');
+      await tester.enterText(find.byType(TextFormField).at(1), 'MATH 273');
       await tester.enterText(
-        find.byType(TextFormField).at(1),
+        find.byType(TextFormField).at(0),
         'Linear Algebra',
       );
       await tester.enterText(find.byType(TextFormField).at(2), '3');
@@ -709,9 +707,13 @@ void main() {
       await _openCourse(tester, 'Course 1');
       await tester.tap(find.byTooltip('Edit course'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Delete'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
       expect(find.text('Delete this course?'), findsOneWidget);
+      await tester.ensureVisible(find.text('Delete'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
@@ -732,6 +734,8 @@ void main() {
 
       await _openCourse(tester, 'Course 1');
       await tester.tap(find.byTooltip('Edit course'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Delete'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
@@ -1013,114 +1017,40 @@ void main() {
     );
   });
 
-  group('focus mode', () {
-    testWidgets(
-      'the field with the keyboard is all the form leaves on screen',
-      (tester) async {
-        await tester.pumpWidget(
-          _host(
-            repository: _FakeTranscriptRepository(
-              transcript: _oneTerm(const []),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppPrimaryButton, 'Add course'));
-        await tester.pumpAndSettle();
-
-        expect(_inCourseForm('Semester'), findsOneWidget);
-        expect(_inCourseForm('Done'), findsNothing);
-
-        _raiseKeyboard(tester);
-        await tester.tap(find.byType(TextFormField).at(1));
-        await tester.pumpAndSettle();
-
-        expect(
-          _inCourseForm('Course'),
-          findsOneWidget,
-          reason: 'the field being typed into is the one thing that stays',
-        );
-        for (final gone in const [
-          'Add course',
-          'Course code',
-          'Credits',
-          'Semester',
-          'Include in GPA',
-          'Save',
-          'Cancel',
-        ]) {
-          expect(
-            _inCourseForm(gone),
-            findsNothing,
-            reason: '$gone does not belong on screen next to a keyboard',
-          );
-        }
-        expect(_inCourseForm('Done'), findsOneWidget);
-
-        await tester.tap(_inCourseForm('Done'));
-        await tester.pumpAndSettle();
-
-        expect(_inCourseForm('Save'), findsOneWidget);
-        expect(_inCourseForm('Semester'), findsOneWidget);
-        expect(_inCourseForm('Done'), findsNothing);
-      },
+  testWidgets('a course with no grade yet carries no badge', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        repository: _FakeTranscriptRepository(
+          transcript: _oneTerm([_course('1', 3, grade: null)]),
+        ),
+      ),
     );
+    await tester.pumpAndSettle();
 
-    testWidgets('the next-field key moves the keyboard on rather than out', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _host(
-          repository: _FakeTranscriptRepository(transcript: _oneTerm(const [])),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(AppPrimaryButton, 'Add course'));
-      await tester.pumpAndSettle();
+    expect(find.text('—'), findsNothing);
+  });
 
-      _raiseKeyboard(tester);
-      await tester.tap(find.byType(TextFormField).at(0));
-      await tester.pumpAndSettle();
-      expect(_inCourseForm('Course code'), findsOneWidget);
+  testWidgets('a field with the keyboard up leaves the form where it was', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        repository: _FakeTranscriptRepository(transcript: _oneTerm(const [])),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(AppPrimaryButton, 'Add course'));
+    await tester.pumpAndSettle();
 
-      await tester.testTextInput.receiveAction(TextInputAction.next);
-      await tester.pumpAndSettle();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.tap(find.byType(TextFormField).first);
+    await tester.pumpAndSettle();
 
-      expect(_inCourseForm('Course'), findsOneWidget);
-      expect(_inCourseForm('Course code'), findsNothing);
-      expect(
-        _inCourseForm('Done'),
-        findsOneWidget,
-        reason:
-            'a folded field is out of the tree, so the key that walks the '
-            'form has to open the next fold rather than hunt for a node',
-      );
-    });
-
-    testWidgets('what was typed survives the fold', (tester) async {
-      await tester.pumpWidget(
-        _host(
-          repository: _FakeTranscriptRepository(transcript: _oneTerm(const [])),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(AppPrimaryButton, 'Add course'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextFormField).at(0), 'MATH 273');
-      _raiseKeyboard(tester);
-      await tester.tap(find.byType(TextFormField).at(1));
-      await tester.pumpAndSettle();
-      await tester.tap(_inCourseForm('Done'));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('MATH 273'),
-        findsOneWidget,
-        reason:
-            'the controllers outlive the fold, so a folded field keeps '
-            'what was already in it',
-      );
-    });
+    // typing into one field folds nothing else away, and Save stays Save
+    for (final label in const ['Course code', 'Credits', 'Semester', 'Save']) {
+      expect(_inCourseForm(label), findsOneWidget, reason: label);
+    }
+    expect(_inCourseForm('Done'), findsNothing);
   });
 }

@@ -11,6 +11,7 @@ Future<bool> confirmDestructiveAction(
 }) async {
   final confirmed = await showModalBottomSheet<bool>(
     context: context,
+    useSafeArea: true,
     isScrollControlled: true,
     // the sheet mounts on the host overlay, so the delegate is installed again
     builder: (_) => GradusStringsScope(child: _ConfirmSheet(message: message)),

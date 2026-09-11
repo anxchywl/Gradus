@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 import '../domain/assignment.dart';
 import '../domain/weights.dart';
 import '../l10n/gradus_strings.dart';
-import 'focus_mode.dart';
 import 'gradus_widgets.dart';
-
-enum _Field { name, weight, maximumScore, earnedScore }
 
 class AssignmentForm extends StatefulWidget {
   const AssignmentForm({
@@ -45,7 +42,6 @@ class _AssignmentFormState extends State<AssignmentForm> {
   late final TextEditingController _earnedScore = TextEditingController(
     text: _initial(widget.existing?.earnedScore),
   );
-  final SheetFocusMode _focus = SheetFocusMode();
   bool _isSubmitting = false;
 
   static String _initial(double? value) {
@@ -61,7 +57,6 @@ class _AssignmentFormState extends State<AssignmentForm> {
     _weight.dispose();
     _maximumScore.dispose();
     _earnedScore.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -128,143 +123,97 @@ class _AssignmentFormState extends State<AssignmentForm> {
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
-    return ListenableBuilder(
-      listenable: _focus,
-      builder: (context, _) {
-        _focus.setKeyboardVisible(MediaQuery.viewInsetsOf(context).bottom > 0);
-        return Padding(
-          // no AnimatedPadding, the platform already animates this inset
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: SingleChildScrollView(
-            padding: gradusSheetPadding(context),
-            child: FocusModeBody(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FocusFold(
-                      hidden: _focus.hidesChrome,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          GradusSheetTitle(
-                            text: widget.existing == null
-                                ? strings.addAssignment
-                                : strings.editAssignment,
-                          ),
-                          AppSpacing.verticalDf,
-                        ],
-                      ),
-                    ),
-                    FocusFold(
-                      hidden: _focus.hides(_Field.name),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: gradusSheetPadding(context),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GradusSheetTitle(
+                    text: widget.existing == null
+                        ? strings.addAssignment
+                        : strings.editAssignment,
+                  ),
+                  AppSpacing.verticalDf,
+                ],
+              ),
+              GradusField(
+                label: strings.assignmentName,
+                child: TextFormField(
+                  controller: _name,
+                  autofocus: true,
+                  textInputAction: TextInputAction.next,
+                  validator: (value) => (value ?? '').trim().isEmpty
+                      ? strings.assignmentNameRequired
+                      : null,
+                ),
+              ),
+              AppSpacing.verticalMd,
+              GradusField(
+                label: strings.assignmentWeight,
+                child: TextFormField(
+                  controller: _weight,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: (value) => _validateWeight(value, strings),
+                ),
+              ),
+              AppSpacing.verticalMd,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: GradusField(
+                      label: strings.maximumScore,
                       child: TextFormField(
-                        controller: _name,
-                        focusNode: _focus.nodeFor(_Field.name),
-                        autofocus: _focus.takeAutofocus(),
-                        decoration: InputDecoration(
-                          labelText: strings.assignmentName,
-                        ),
-                        textInputAction: TextInputAction.next,
-                        onFieldSubmitted: (_) => _focus.moveTo(_Field.weight),
-                        validator: (value) => (value ?? '').trim().isEmpty
-                            ? strings.assignmentNameRequired
-                            : null,
-                      ),
-                    ),
-                    FocusGap(hidden: _focus.hidesChrome),
-                    FocusFold(
-                      hidden: _focus.hides(_Field.weight),
-                      child: TextFormField(
-                        controller: _weight,
-                        focusNode: _focus.nodeFor(_Field.weight),
-                        decoration: InputDecoration(
-                          labelText: strings.assignmentWeight,
-                        ),
+                        controller: _maximumScore,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         textInputAction: TextInputAction.next,
-                        onFieldSubmitted: (_) =>
-                            _focus.moveTo(_Field.maximumScore),
-                        validator: (value) => _validateWeight(value, strings),
+                        validator: (value) =>
+                            _validateMaximumScore(value, strings),
                       ),
                     ),
-                    FocusGap(hidden: _focus.hidesChrome),
-                    // a mark and its total fold as one thing
-                    FocusFold(
-                      hidden:
-                          _focus.hides(_Field.maximumScore) &&
-                          _focus.hides(_Field.earnedScore),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _maximumScore,
-                              focusNode: _focus.nodeFor(_Field.maximumScore),
-                              decoration: InputDecoration(
-                                labelText: strings.maximumScore,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              textInputAction: TextInputAction.next,
-                              onFieldSubmitted: (_) =>
-                                  _focus.moveTo(_Field.earnedScore),
-                              validator: (value) =>
-                                  _validateMaximumScore(value, strings),
-                            ),
-                          ),
-                          AppSpacing.horizontalMd,
-                          Expanded(
-                            child: TextFormField(
-                              controller: _earnedScore,
-                              focusNode: _focus.nodeFor(_Field.earnedScore),
-                              decoration: InputDecoration(
-                                labelText: strings.earnedScore,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              textInputAction: TextInputAction.done,
-                              // the rest of the form is folded away
-                              onFieldSubmitted: (_) => _focus.release(),
-                              validator: (value) =>
-                                  _validateEarnedScore(value, strings),
-                            ),
-                          ),
-                        ],
+                  ),
+                  AppSpacing.horizontalMd,
+                  Expanded(
+                    child: GradusField(
+                      label: strings.earnedScore,
+                      child: TextFormField(
+                        controller: _earnedScore,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.done,
+                        validator: (value) =>
+                            _validateEarnedScore(value, strings),
                       ),
                     ),
-                    AppSpacing.verticalXl,
-                    FocusModeActions(
-                      isTyping: _focus.isTyping,
-                      doneLabel: strings.done,
-                      onDone: _focus.release,
-                      actions: GradusFormActions(
-                        primaryLabel: strings.save,
-                        onPrimary: _submit,
-                        secondaryLabel: widget.onDelete == null
-                            ? strings.cancel
-                            : strings.delete,
-                        onSecondary: _dismiss,
-                        isSecondaryDestructive: widget.onDelete != null,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
+              AppSpacing.verticalXl,
+              GradusFormActions(
+                primaryLabel: strings.save,
+                onPrimary: _submit,
+                secondaryLabel: widget.onDelete == null ? null : strings.delete,
+                onSecondary: widget.onDelete == null ? null : _dismiss,
+                isSecondaryDestructive: true,
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

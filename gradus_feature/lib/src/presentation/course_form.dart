@@ -11,7 +11,6 @@ import '../domain/semester.dart';
 import '../domain/syllabus.dart';
 import '../domain/weights.dart';
 import '../l10n/gradus_strings.dart';
-import 'focus_mode.dart';
 import 'gradus_formatting.dart';
 import 'gradus_widgets.dart';
 
@@ -19,13 +18,19 @@ import 'gradus_widgets.dart';
 // it said at the start
 const Duration importPatience = Duration(seconds: 5);
 
-enum _Field { code, title, credits }
+// the sheet swaps its whole body for a chooser and back, one motion
+const Duration _chooserDuration = Duration(milliseconds: 340);
+
+const Curve _chooserCurve = Curves.easeOutCubic;
 
 // which chooser has taken the sheet over, if any
 enum _Chooser { semester, grade }
 
 // what the syllabus did not state, named on screen rather than guessed
 enum _MissingField { code, title, credits, assignments }
+
+// what the import card is showing: the offer, the wait, the result, a refusal
+enum _ImportState { idle, reading, done, failed }
 
 class CourseForm extends StatefulWidget {
   const CourseForm({
@@ -67,7 +72,6 @@ class _CourseFormState extends State<CourseForm> {
   late String _semesterId =
       widget.existing?.semesterId ?? widget.initialSemesterId;
   late Grade? _grade = widget.existing?.grade;
-  final SheetFocusMode _focus = SheetFocusMode();
   _Chooser? _chooser;
   bool _isSubmitting = false;
   bool _isImporting = false;
@@ -104,7 +108,6 @@ class _CourseFormState extends State<CourseForm> {
     _code.dispose();
     _title.dispose();
     _credits.dispose();
-    _focus.dispose();
     super.dispose();
   }
 
@@ -166,19 +169,10 @@ class _CourseFormState extends State<CourseForm> {
     _hasImported = true;
   }
 
-  void _dropImported(int index) => setState(() {
-    _imported = [
-      for (var position = 0; position < _imported.length; position++)
-        if (position != index) _imported[position],
-    ];
-  });
-
   void _submit() {
     // a second tap while the first is still popping would add the course twice
     if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
-    // the course constructor would reject this, so it never gets the chance
-    if (_isOverBudget) return;
     _isSubmitting = true;
 
     final id =
@@ -198,107 +192,79 @@ class _CourseFormState extends State<CourseForm> {
     );
   }
 
-  // identifiers are generated here; nothing from the document names anything
-  List<Assignment> _importedAssignments(String courseId) => [
-    for (var index = 0; index < _imported.length; index++)
-      Assignment(
-        id: 'assignment_${DateTime.now().microsecondsSinceEpoch}_$index',
-        courseId: courseId,
-        name: _imported[index].name,
-        weight: _imported[index].weight,
-        // a syllabus states weights, never a maximum score
-        maximumScore: importedMaximumScore,
-      ),
-  ];
+  // identifiers are generated here; nothing from the document names anything.
+  // a set over 100% is left out whole, since trimming it to fit would be a guess
+  List<Assignment> _importedAssignments(String courseId) => _isOverBudget
+      ? const []
+      : [
+          for (var index = 0; index < _imported.length; index++)
+            Assignment(
+              id: 'assignment_${DateTime.now().microsecondsSinceEpoch}_$index',
+              courseId: courseId,
+              name: _imported[index].name,
+              weight: _imported[index].weight,
+              // a syllabus states weights, never a maximum score
+              maximumScore: importedMaximumScore,
+            ),
+        ];
 
-  String _importLabel(GradusStrings strings) {
-    if (!_isImporting) return strings.importFromSyllabus;
-    return _importIsSlow ? strings.importStillRunning : strings.importRunning;
+  _ImportState get _importState {
+    if (_isImporting) return _ImportState.reading;
+    if (_importProblem != null) return _ImportState.failed;
+    if (_hasImported) return _ImportState.done;
+    return _ImportState.idle;
   }
 
-  // the control only exists where a syllabus can actually be read
-  List<Widget> _importControl(GradusStrings strings) {
-    if (widget.onImportSyllabus == null || widget.existing != null) {
-      return const [];
-    }
-    final problem = _importProblem;
-    return [
-      AppSecondaryButton(
-        text: _importLabel(strings),
-        isLoading: _isImporting,
-        onPressed: _isImporting ? null : _import,
-      ),
-      AppSpacing.verticalSm,
-      Text(strings.importNote, style: AppTextStyles.bodySmall),
-      if (problem != null) ...[
-        AppSpacing.verticalSm,
-        Text(
-          _problemMessage(strings, problem),
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.errorText),
-        ),
-      ],
-      if (_importMissing.isNotEmpty) ...[
-        AppSpacing.verticalSm,
-        Text(
+  String _importTitle(GradusStrings strings) => switch (_importState) {
+    _ImportState.reading =>
+      _importIsSlow ? strings.importStillRunning : strings.importRunning,
+    _ImportState.done => strings.importDone,
+    _ImportState.idle || _ImportState.failed => strings.importFromSyllabus,
+  };
+
+  // the card offers the fill and says nothing more until something needs the
+  // student's attention: a refusal, or what a read could not fill. the
+  // assignments are reviewed on the course once it is saved
+  List<_CardLine> _importLines(GradusStrings strings) => switch (_importState) {
+    _ImportState.idle || _ImportState.reading => const [],
+    _ImportState.failed => [
+      _CardLine(_problemMessage(strings, _importProblem!), isProblem: true),
+    ],
+    _ImportState.done => [
+      if (_isOverBudget)
+        _CardLine(strings.importOverBudget(_importedWeight), isProblem: true),
+      if (_importMissing.isNotEmpty)
+        _CardLine(
           strings.importMissingFields(
             _importMissing
                 .map((field) => _fieldName(strings, field))
                 .join(', '),
           ),
-          style: AppTextStyles.bodySmall,
         ),
-      ],
-      AppSpacing.verticalDf,
-    ];
-  }
+    ],
+  };
 
-  List<Widget> _importedList(GradusStrings strings) {
-    if (!_hasImported || _imported.isEmpty) return const [];
+  // the card only exists where a syllabus can actually be read
+  List<Widget> _importCard(GradusStrings strings) {
+    if (widget.onImportSyllabus == null || widget.existing != null) {
+      return const [];
+    }
     return [
-      AppSpacing.verticalMd,
-      Text(strings.importedAssignments, style: AppTextStyles.labelMedium),
-      AppSpacing.verticalSm,
-      for (var index = 0; index < _imported.length; index++)
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _imported[index].name,
-                  style: AppTextStyles.bodyMedium,
-                ),
-              ),
-              Text(
-                strings.percentValue(_imported[index].weight),
-                style: AppTextStyles.bodyMedium,
-              ),
-              AppSpacing.horizontalSm,
-              Semantics(
-                container: true,
-                button: true,
-                label: strings.importRemoveEntry(_imported[index].name),
-                child: AppIconButton(
-                  icon: const AppIcon(AppIcons.close),
-                  tooltip: strings.importRemoveEntry(_imported[index].name),
-                  iconColor: gradusPrimaryText(context),
-                  onPressed: () => _dropImported(index),
-                ),
-              ),
-            ],
-          ),
-        ),
-      Text(
-        strings.importedWeightTotal(_importedWeight),
-        style: AppTextStyles.bodySmall,
+      _SyllabusCard(
+        state: _importState,
+        title: _importTitle(strings),
+        lines: _importLines(strings),
+        // a second tap would pay for a second extraction, and a finished read
+        // is not repeated from here
+        onTap: _isImporting || _hasImported ? null : _import,
       ),
-      if (_isOverBudget)
-        Text(
-          strings.importedWeightOverBudget,
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.errorText),
-        )
-      else
-        Text(strings.importedScoreNote, style: AppTextStyles.bodySmall),
+      AppSpacing.verticalLg,
+      // before a read there are two ways to fill the form; after one, only
+      // the fields are left to check
+      if (_importState != _ImportState.done) ...[
+        GradusDividerLabel(text: strings.importOrEnter),
+        AppSpacing.verticalLg,
+      ],
     ];
   }
 
@@ -327,59 +293,39 @@ class _CourseFormState extends State<CourseForm> {
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
-    return ListenableBuilder(
-      listenable: _focus,
-      builder: (context, _) {
-        _focus.setKeyboardVisible(MediaQuery.viewInsetsOf(context).bottom > 0);
-        return Padding(
-          // no AnimatedPadding, the platform already animates this inset
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: SingleChildScrollView(
-            padding: gradusSheetPadding(context),
-            // the sheet becomes the chooser and comes back, one surface
-            child: AnimatedSize(
-              duration: chooserDuration,
-              curve: focusModeCurve,
-              // the sheet is pinned to the bottom of the screen, so the
-              // controls there stay put and the top edge does the moving
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: gradusSheetPadding(context),
+        child: AnimatedSize(
+          duration: _chooserDuration,
+          curve: _chooserCurve,
+          alignment: Alignment.bottomCenter,
+          child: AnimatedSwitcher(
+            duration: _chooserDuration,
+            switchInCurve: _chooserCurve,
+            switchOutCurve: Curves.easeInCubic,
+            layoutBuilder: (current, previous) => Stack(
               alignment: Alignment.bottomCenter,
-              child: AnimatedSwitcher(
-                duration: chooserDuration,
-                switchInCurve: focusModeCurve,
-                switchOutCurve: Curves.easeInCubic,
-                // the outgoing panel is positioned, so it no longer measures
-                // the stack: the height follows the arriving panel from the
-                // first frame instead of waiting for the fade to finish
-                layoutBuilder: (current, previous) => Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    for (final child in previous)
-                      Positioned(bottom: 0, left: 0, right: 0, child: child),
-                    ?current,
-                  ],
-                ),
-                // a plain cross-fade over a changing height reads as a jump,
-                // so the incoming panel settles into place as it arrives
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(
-                    scale: Tween<double>(
-                      begin: 0.97,
-                      end: 1,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                ),
-                child: _chooser != null
-                    ? _panel(context, strings)
-                    : _fields(context, strings),
+              children: [
+                for (final child in previous)
+                  Positioned(bottom: 0, left: 0, right: 0, child: child),
+                ?current,
+              ],
+            ),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.97, end: 1).animate(animation),
+                child: child,
               ),
             ),
+            child: _chooser != null
+                ? _panel(context, strings)
+                : _fields(context, strings),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -389,8 +335,6 @@ class _CourseFormState extends State<CourseForm> {
       _Chooser.semester => GradusChooserPanel<String>(
         title: strings.semesterLabel,
         selected: _semesterId,
-        cancelLabel: strings.cancel,
-        onCancel: () => setState(() => _chooser = null),
         onSelected: (id) => setState(() {
           _semesterId = id;
           _chooser = null;
@@ -409,8 +353,6 @@ class _CourseFormState extends State<CourseForm> {
       _Chooser.grade => GradusChooserPanel<String?>(
         title: strings.courseGrade,
         selected: _grade?.letter,
-        cancelLabel: strings.cancel,
-        onCancel: () => setState(() => _chooser = null),
         onSelected: (letter) => setState(() {
           _grade = letter == null ? null : widget.scale.byLetter(letter);
           _chooser = null;
@@ -460,127 +402,195 @@ class _CourseFormState extends State<CourseForm> {
     ];
   }
 
-  Widget _fields(BuildContext context, GradusStrings strings) => FocusModeBody(
-    child: Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FocusFold(
-            hidden: _focus.hidesChrome,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                GradusSheetTitle(
-                  text: widget.existing == null
-                      ? strings.addCourse
-                      : strings.editCourse,
+  Widget _fields(BuildContext context, GradusStrings strings) => Form(
+    key: _formKey,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            GradusSheetTitle(
+              text: widget.existing == null
+                  ? strings.addCourse
+                  : strings.editCourse,
+            ),
+            AppSpacing.verticalDf,
+            ..._importCard(strings),
+          ],
+        ),
+        GradusField(
+          label: strings.courseTitle,
+          child: TextFormField(
+            controller: _title,
+            enabled: !_isImporting,
+            textInputAction: TextInputAction.next,
+            validator: (value) =>
+                (value ?? '').trim().isEmpty ? strings.titleRequired : null,
+          ),
+        ),
+        AppSpacing.verticalDf,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: GradusField(
+                label: strings.courseCode,
+                child: TextFormField(
+                  controller: _code,
+                  enabled: !_isImporting,
+                  textInputAction: TextInputAction.next,
                 ),
-                AppSpacing.verticalDf,
-                ..._importControl(strings),
-              ],
-            ),
-          ),
-          FocusFold(
-            hidden: _focus.hides(_Field.code),
-            child: TextFormField(
-              controller: _code,
-              focusNode: _focus.nodeFor(_Field.code),
-              enabled: !_isImporting,
-              decoration: InputDecoration(labelText: strings.courseCode),
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _focus.moveTo(_Field.title),
-            ),
-          ),
-          FocusGap(hidden: _focus.hidesChrome),
-          FocusFold(
-            hidden: _focus.hides(_Field.title),
-            child: TextFormField(
-              controller: _title,
-              focusNode: _focus.nodeFor(_Field.title),
-              enabled: !_isImporting,
-              decoration: InputDecoration(labelText: strings.courseTitle),
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _focus.moveTo(_Field.credits),
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? strings.titleRequired : null,
-            ),
-          ),
-          FocusGap(hidden: _focus.hidesChrome),
-          FocusFold(
-            hidden: _focus.hides(_Field.credits),
-            child: TextFormField(
-              controller: _credits,
-              focusNode: _focus.nodeFor(_Field.credits),
-              enabled: !_isImporting,
-              decoration: InputDecoration(labelText: strings.courseCredits),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
               ),
-              textInputAction: TextInputAction.done,
-              // the fields are folded out, so done means done typing
-              onFieldSubmitted: (_) => _focus.release(),
-              validator: (value) {
-                final credits = double.tryParse((value ?? '').trim());
-                if (credits == null ||
-                    credits <= 0 ||
-                    credits > Course.maximumCredits) {
-                  return strings.creditsRequired;
-                }
-                return null;
-              },
             ),
-          ),
-          // chrome: none of it holds the keyboard
-          FocusFold(
-            hidden: _focus.hidesChrome,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppSpacing.verticalMd,
-                GradusChooserField(
-                  isEnabled: !_isImporting,
-                  label: strings.semesterLabel,
-                  value: _semesterLabel(strings),
-                  onTap: () => setState(() => _chooser = _Chooser.semester),
+            AppSpacing.horizontalMd,
+            Expanded(
+              flex: 2,
+              child: GradusField(
+                label: strings.courseCredits,
+                child: TextFormField(
+                  controller: _credits,
+                  enabled: !_isImporting,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.done,
+                  validator: (value) {
+                    final credits = double.tryParse((value ?? '').trim());
+                    if (credits == null ||
+                        credits <= 0 ||
+                        credits > Course.maximumCredits) {
+                      return strings.creditsRequired;
+                    }
+                    return null;
+                  },
                 ),
-                AppSpacing.verticalMd,
-                GradusChooserField(
-                  isEnabled: !_isImporting,
-                  label: strings.courseGrade,
-                  value: _grade?.letter ?? strings.gradeNotSet,
-                  onTap: () => setState(() => _chooser = _Chooser.grade),
-                ),
-              ],
+              ),
             ),
-          ),
-          // chrome as well: the proposal is reviewed, not typed into
-          FocusFold(
-            hidden: _focus.hidesChrome,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _importedList(strings),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppSpacing.verticalDf,
+            GradusChooserField(
+              isEnabled: !_isImporting,
+              label: strings.semesterLabel,
+              value: _semesterLabel(strings),
+              onTap: () => setState(() => _chooser = _Chooser.semester),
             ),
-          ),
-          AppSpacing.verticalXl,
-          FocusModeActions(
-            isTyping: _focus.isTyping,
-            doneLabel: strings.done,
-            onDone: _focus.release,
-            actions: GradusFormActions(
-              primaryLabel: strings.save,
-              onPrimary: _submit,
-              isPrimaryEnabled: !_isImporting,
-              secondaryLabel: widget.onDelete == null
-                  ? strings.cancel
-                  : strings.delete,
-              onSecondary: _dismiss,
-              isSecondaryDestructive: widget.onDelete != null,
+            AppSpacing.verticalDf,
+            GradusChooserField(
+              isEnabled: !_isImporting,
+              label: strings.courseGrade,
+              value: _grade?.letter ?? strings.gradeNotSet,
+              onTap: () => setState(() => _chooser = _Chooser.grade),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+        AppSpacing.verticalXl,
+        GradusFormActions(
+          primaryLabel: strings.save,
+          onPrimary: _submit,
+          isPrimaryEnabled: !_isImporting,
+          secondaryLabel: widget.onDelete == null ? null : strings.delete,
+          onSecondary: widget.onDelete == null ? null : _dismiss,
+          isSecondaryDestructive: true,
+        ),
+      ],
     ),
   );
+}
+
+class _CardLine {
+  const _CardLine(this.text, {this.isProblem = false});
+
+  final String text;
+  final bool isProblem;
+}
+
+// one surface for the whole import, so the offer, the wait and the result sit
+// in the same place instead of a button with notes scattered under it
+class _SyllabusCard extends StatelessWidget {
+  const _SyllabusCard({
+    required this.state,
+    required this.title,
+    required this.lines,
+    required this.onTap,
+  });
+
+  final _ImportState state;
+  final String title;
+  final List<_CardLine> lines;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final accent = isLight ? AppColors.primary : AppColors.primaryAccentDark;
+    final problem = isLight ? AppColors.errorText : AppColors.errorTextDark;
+
+    // the state rides the trailing edge, where the chevron offered the read
+    final trailing = switch (state) {
+      _ImportState.reading => SizedBox.square(
+        dimension: AppSpacing.iconSm,
+        child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+      ),
+      _ImportState.done => AppIcon(
+        AppIcons.check,
+        size: AppSpacing.iconMd,
+        color: accent,
+      ),
+      _ImportState.idle || _ImportState.failed => const AppIcon(
+        AppIcons.chevronRight,
+        size: AppSpacing.iconSm,
+        color: AppColors.textSecondary,
+      ),
+    };
+
+    return Material(
+      color: isLight ? AppColors.primaryLight : AppColors.primaryLightDark,
+      borderRadius: AppSpacing.borderRadiusDf,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppSpacing.borderRadiusDf,
+        child: Padding(
+          padding: AppSpacing.cardPadding,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: gradusPrimaryText(context),
+                      ),
+                    ),
+                    for (final line in lines) ...[
+                      AppSpacing.verticalXs,
+                      Text(
+                        line.text,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: line.isProblem
+                              ? problem
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              AppSpacing.horizontalMd,
+              trailing,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

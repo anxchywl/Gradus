@@ -249,7 +249,7 @@
   },
   "importFromSyllabus": "Fill from syllabus",
   "@importFromSyllabus": {
-    "description": "Button that picks a syllabus PDF and fills the course form"
+    "description": "Heads the card that picks a syllabus and fills the course form"
   },
   "importRunning": "Reading the syllabus",
   "@importRunning": {
@@ -259,9 +259,9 @@
   "@importStillRunning": {
     "description": "Replaces importRunning once a read has gone on long enough to look stuck"
   },
-  "importNote": "The file is sent to the Gradus server and read there. Check what it filled in before saving.",
-  "@importNote": {
-    "description": "Says where the document goes, shown next to the import button"
+  "importOrEnter": "Or enter it yourself",
+  "@importOrEnter": {
+    "description": "Divides the syllabus card from the fields a student fills in by hand; shown in capitals"
   },
   "importMissingFields": "Not found in the syllabus: {fields}",
   "@importMissingFields": {
@@ -272,16 +272,13 @@
       }
     }
   },
-  "importedAssignments": "From the syllabus",
-  "@importedAssignments": {
-    "description": "Heading over the assignments an import proposed"
+  "importDone": "Filled from syllabus",
+  "@importDone": {
+    "description": "Heads the import card once a syllabus has filled the form"
   },
-  "importedScoreNote": "Each is out of 100 and unmarked until you enter a score",
-  "@importedScoreNote": {
-    "description": "Explains the maximum score an import assumes"
-  },
-  "importedWeightTotal": "Weights total {total}%",
-  "@importedWeightTotal": {
+  "importOverBudget": "Its weights add up to {total}%, more than a course can hold, so no assignments will be added. Add them on the course after saving.",
+  "@importOverBudget": {
+    "description": "Imported weights exceed what a course allows, so none of them are kept",
     "placeholders": {
       "total": {
         "type": "double",
@@ -289,19 +286,6 @@
         "optionalParameters": {
           "decimalDigits": 1
         }
-      }
-    }
-  },
-  "importedWeightOverBudget": "That is over 100%. Remove an entry before saving.",
-  "@importedWeightOverBudget": {
-    "description": "Shown when imported weights exceed what a course allows"
-  },
-  "importRemoveEntry": "Remove {name}",
-  "@importRemoveEntry": {
-    "description": "Semantics label for the control that drops one imported entry",
-    "placeholders": {
-      "name": {
-        "type": "String"
       }
     }
   },

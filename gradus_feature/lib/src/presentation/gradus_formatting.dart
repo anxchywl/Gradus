@@ -1,5 +1,4 @@
 import '../domain/assignment.dart';
-import '../domain/course_grade.dart';
 import '../domain/gpa.dart';
 import '../domain/semester.dart';
 import '../l10n/gradus_strings.dart';
@@ -10,9 +9,6 @@ String formatPercentage(GradusStrings strings, double? value) =>
 
 String formatGpa(GradusStrings strings, double? value) =>
     value == null ? strings.valueUnavailable : strings.gpaNumber(value);
-
-String formatLetter(GradusStrings strings, CourseGrade resolved) =>
-    resolved.grade?.letter ?? strings.valueUnavailable;
 
 // a term carried over from a store with no terms has no name to show
 String formatSemester(GradusStrings strings, Semester semester) =>

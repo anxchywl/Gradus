@@ -39,8 +39,12 @@ Color _toneBackground(GradusTone tone, BuildContext context) {
 
 // the home indicator would otherwise sit on top of the last control; the
 // keyboard takes this padding back, because it lifts the sheet clear itself
-EdgeInsets gradusSheetPadding(BuildContext context) => AppSpacing.screenPadding
-    .copyWith(bottom: AppSpacing.df + MediaQuery.paddingOf(context).bottom);
+EdgeInsets gradusSheetPadding(BuildContext context) =>
+    AppSpacing.screenPadding.copyWith(
+      // the theme's drag handle already stands above the header
+      top: AppSpacing.xs,
+      bottom: AppSpacing.df + MediaQuery.paddingOf(context).bottom,
+    );
 
 // a dropdown opens a second surface over the sheet; this looks like the fields
 // beside it and hands over to a panel inside the sheet itself
@@ -59,7 +63,14 @@ class GradusChooserField extends StatelessWidget {
   final bool isEnabled;
 
   @override
-  Widget build(BuildContext context) => Semantics(
+  Widget build(BuildContext context) => GradusField(
+    label: label,
+    // the chooser names itself below, so the heading is not read twice
+    excludeLabelSemantics: true,
+    child: _field(context),
+  );
+
+  Widget _field(BuildContext context) => Semantics(
     button: true,
     enabled: isEnabled,
     label: label,
@@ -68,7 +79,7 @@ class GradusChooserField extends StatelessWidget {
       onTap: isEnabled ? onTap : null,
       borderRadius: AppSpacing.borderRadiusDf,
       child: InputDecorator(
-        decoration: InputDecoration(labelText: label, enabled: isEnabled),
+        decoration: InputDecoration(enabled: isEnabled),
         child: Row(
           children: [
             Expanded(
@@ -111,8 +122,6 @@ class GradusChooserPanel<T> extends StatelessWidget {
     required this.rows,
     required this.selected,
     required this.onSelected,
-    required this.onCancel,
-    required this.cancelLabel,
   });
 
   final String title;
@@ -122,8 +131,6 @@ class GradusChooserPanel<T> extends StatelessWidget {
 
   final T selected;
   final ValueChanged<T> onSelected;
-  final VoidCallback onCancel;
-  final String cancelLabel;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -149,12 +156,6 @@ class GradusChooserPanel<T> extends StatelessWidget {
         ),
         AppSpacing.verticalSm,
       ],
-      AppSpacing.verticalSm,
-      AppSecondaryButton(
-        text: cancelLabel,
-        size: AppButtonSize.medium,
-        onPressed: onCancel,
-      ),
     ],
   );
 }
@@ -197,15 +198,15 @@ class _ChooserChip extends StatelessWidget {
   );
 }
 
-// every sheet ends the same way: the way out beside the commitment, both
-// compact enough to sit on one row
+// every sheet ends the same way: the commitment on the right, taking the width,
+// and anything else as a small button on its left
 class GradusFormActions extends StatelessWidget {
   const GradusFormActions({
     super.key,
     required this.primaryLabel,
     required this.onPrimary,
-    required this.secondaryLabel,
-    required this.onSecondary,
+    this.secondaryLabel,
+    this.onSecondary,
     this.isPrimaryDestructive = false,
     this.isSecondaryDestructive = false,
     this.isSecondaryEnabled = true,
@@ -214,8 +215,8 @@ class GradusFormActions extends StatelessWidget {
 
   final String primaryLabel;
   final VoidCallback onPrimary;
-  final String secondaryLabel;
-  final VoidCallback onSecondary;
+  final String? secondaryLabel;
+  final VoidCallback? onSecondary;
   final bool isPrimaryDestructive;
   final bool isSecondaryDestructive;
   final bool isSecondaryEnabled;
@@ -226,38 +227,85 @@ class GradusFormActions extends StatelessWidget {
     final destructive = Theme.of(context).brightness == Brightness.light
         ? AppColors.errorText
         : AppColors.errorTextDark;
+    final primary = AppPrimaryButton(
+      text: primaryLabel,
+      isEnabled: isPrimaryEnabled,
+      color: isPrimaryDestructive ? destructive : null,
+      onPressed: onPrimary,
+    );
+    final secondary = secondaryLabel;
+    if (secondary == null) return primary;
 
     return Row(
       children: [
-        Expanded(
-          child: AppSecondaryButton(
-            text: secondaryLabel,
-            size: AppButtonSize.medium,
-            isEnabled: isSecondaryEnabled,
-            borderColor: isSecondaryDestructive ? destructive : null,
-            textColor: isSecondaryDestructive ? destructive : null,
-            onPressed: onSecondary,
-          ),
+        _CompactAction(
+          label: secondary,
+          isDestructive: isSecondaryDestructive,
+          isEnabled: isSecondaryEnabled,
+          onPressed: onSecondary,
         ),
         AppSpacing.horizontalMd,
-        Expanded(
-          child: isPrimaryDestructive
-              ? AppSecondaryButton(
-                  text: primaryLabel,
-                  size: AppButtonSize.medium,
-                  isEnabled: isPrimaryEnabled,
-                  borderColor: destructive,
-                  textColor: destructive,
-                  onPressed: onPrimary,
-                )
-              : AppPrimaryButton(
-                  text: primaryLabel,
-                  size: AppButtonSize.medium,
-                  isEnabled: isPrimaryEnabled,
-                  onPressed: onPrimary,
-                ),
-        ),
+        Expanded(child: primary),
       ],
+    );
+  }
+}
+
+// small and tinted rather than outlined, so it never reads as the main action
+class _CompactAction extends StatelessWidget {
+  const _CompactAction({
+    required this.label,
+    required this.isDestructive,
+    required this.isEnabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool isDestructive;
+  final bool isEnabled;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final foreground = isDestructive
+        ? (isLight ? AppColors.errorText : AppColors.errorTextDark)
+        : gradusPrimaryText(context);
+    final background = isDestructive
+        ? (isLight
+              ? AppColors.errorLight
+              : AppColors.errorTextDark.withValues(alpha: 0.15))
+        : gradusMutedSurface(context);
+    final isActive = isEnabled && onPressed != null;
+
+    return Semantics(
+      button: true,
+      enabled: isActive,
+      child: Opacity(
+        opacity: isActive ? 1 : 0.5,
+        child: Material(
+          color: background,
+          borderRadius: AppSpacing.borderRadiusDf,
+          child: InkWell(
+            onTap: isActive ? onPressed : null,
+            borderRadius: AppSpacing.borderRadiusDf,
+            child: SizedBox(
+              // level with the commitment beside it
+              height: AppSpacing.buttonHeightLg,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    label,
+                    style: AppTextStyles.button.copyWith(color: foreground),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -515,4 +563,77 @@ class GradusEmptyState extends StatelessWidget {
       ),
     ),
   );
+}
+
+// the label stands above its field, where it stays readable once the field is
+// filled in, instead of shrinking into the field's top edge
+class GradusField extends StatelessWidget {
+  const GradusField({
+    super.key,
+    required this.label,
+    required this.child,
+    this.excludeLabelSemantics = false,
+  });
+
+  final String label;
+  final Widget child;
+
+  // a control that already names itself would otherwise be read twice
+  final bool excludeLabelSemantics;
+
+  @override
+  Widget build(BuildContext context) {
+    final heading = Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: 6),
+      child: Text(
+        label,
+        style: AppTextStyles.labelMedium.copyWith(
+          color: gradusPrimaryText(context),
+        ),
+      ),
+    );
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (excludeLabelSemantics)
+          ExcludeSemantics(child: heading)
+        else
+          heading,
+        child,
+      ],
+    );
+    // merged, so a screen reader announces the field by the label above it
+    return excludeLabelSemantics ? column : MergeSemantics(child: column);
+  }
+}
+
+// a rule with words in it, between two ways of doing the same thing
+class GradusDividerLabel extends StatelessWidget {
+  const GradusDividerLabel({super.key, required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).brightness == Brightness.light
+        ? AppColors.lightGrey
+        : AppColors.borderDark;
+    return Row(
+      children: [
+        Expanded(child: Divider(height: 1, thickness: 1, color: color)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Text(
+            text.toUpperCase(),
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+              letterSpacing: 1.4,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(height: 1, thickness: 1, color: color)),
+      ],
+    );
+  }
 }

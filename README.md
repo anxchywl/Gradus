@@ -25,7 +25,6 @@ feature never signs anyone in and holds no account of its own.
   assessment table, proposed for the student to confirm
 - See a course grade computed from marked work only, with the unallocated
   weight and the maximum still reachable named rather than assumed
-- Focus mode for entering marks without the form moving under the keyboard
 - English, Russian and Kazakh
 
 Sign-in, server-side storage, registrar and Moodle import, grade projections and
@@ -58,8 +57,8 @@ Web and desktop are not supported.
 
 ```bash
 cp .env.example .env
-cd backend && uv sync --extra dev
-uv run uvicorn app.main:create_app --factory --reload --port 8000
+uv sync --project backend --extra dev
+uv run --project backend uvicorn app.main:create_app --factory --app-dir backend --reload --port 8000
 ```
 
 ```bash
@@ -87,6 +86,8 @@ development machine:
 | `ENABLE_DEV_ACCESS` | `false` | Lets the standalone host open the feature with a placeholder session |
 | `GRADUS_ACCESS_TOKEN` | none | Development student token, passed unchanged to the backend |
 | `GRADUS_OPERATOR_ACCESS_TOKEN` | none | Distinct development operator token |
+| `GRADUS_BACKEND` | `sample` | `sample` keeps everything on the device; `remote` enables syllabus import |
+| `GRADUS_API_BASE_URL` | none | The backend `remote` reads syllabi through; https unless it is on this machine |
 
 Neither token has a default value, so a build that forgets one fails closed
 rather than opening with a known credential.
@@ -113,15 +114,17 @@ Each document owns its subject once; nothing is repeated.
 
 ## Limits worth knowing before reading further
 
-- No production authentication. The host resolver verifies a JWT and rejects
-  every token until an issuer and a key are configured. Nothing is configured,
-  so it authenticates nobody.
+- No way for a student to sign in yet. The deployed backend verifies tokens
+  signed with one HS256 secret held on the server, because no separate host
+  application issues them, and a release build of the app shows a closed
+  screen. Only a development build carrying a token gets in.
 - No server-side persistence and no database at all. A transcript lives on the
   student's own device, so reinstalling the app loses it, and there is nothing
   to back up.
-- A syllabus is the one thing that leaves the device: the PDF is uploaded and
-  its text is read by a model on the server. Nothing is stored, and the student
-  is told before the upload.
+- A syllabus is the one thing that leaves the device: the PDF or Word document
+  is uploaded and its text is read by a model on the server. Nothing is stored,
+  and the import card does not say at the moment of upload that the file leaves
+  the phone.
 - The grade scale is NU's: the registrar's published quality points, and the
   percentage cutoffs the Course Specification Form prints. Those cutoffs are
   faculty discretion, so a course may state its own and the student would have

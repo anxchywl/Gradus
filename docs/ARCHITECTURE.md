@@ -66,13 +66,20 @@ host application.
 ```dart
 GradusFeature(
   session: GradusSession(accessToken: token, accountId: id),
-  dependencies: createSampleDependencies(),
-  config: const GradusConfig.sample(),
+  dependencies: createLocalDependencies(
+    accountId: id,
+    syllabus: createSyllabusImporter(baseUri: apiBase, accessToken: token),
+  ),
+  config: GradusConfig.remote(baseUri: apiBase),
 )
 ```
 
+Syllabus import exists only when an importer is passed in; a remote config does
+not create one. `createSampleDependencies()` with `GradusConfig.sample()` runs
+the feature with nothing leaving the device.
+
 Remote configuration requires HTTPS. The standalone debug host is the only
-caller that may opt into plain HTTP, and it does so explicitly.
+caller that may opt into plain HTTP, and only to a backend on the same machine.
 
 | Concern | Owner |
 |---|---|
@@ -162,36 +169,15 @@ and a grid would pad every one of them out to the tallest.
 
 ## Forms and the keyboard
 
-A sheet on a phone gives up most of its height the moment the keyboard arrives,
-and what is left is usually the wrong half: a heading, three other fields and a
-note, with the one being typed into pinned against the top of the keyboard.
+A field that takes the keyboard leaves the rest of the form in place. The sheet
+pads itself by the keyboard's height and scrolls, so the field being typed into
+stays in view and Save is always the same button. The keyboard's next-field key
+follows the form's reading order, and the last field's key puts the keyboard
+away.
 
-Every form here runs focus mode, in `presentation/focus_mode.dart`. While a
-field holds the keyboard, everything that is not that field folds away -
-heading, other fields, dropdowns, the switch, the notes and the gaps between
-them - and Save and Cancel are replaced by Done, which puts the keyboard away
-and brings the form back. One duration and one curve for all of it, since two
-speeds in the same movement read as a wobble.
-
-`SheetFocusMode` owns the focus nodes, so they outlive the folds and a field
-that folds away keeps what was typed into it. The keyboard is read from the
-view's insets rather than from focus alone: a field can hold focus with no
-keyboard on screen, and the sheet only has a height problem when the keyboard is
-actually up. The pattern is taken from the sibling project this kit was forked
-from, so the two behave the same way.
-
-Two consequences of folding a field out of the tree rather than hiding it:
-
-- The keyboard's next-field key cannot find the node it is meant to move to, so
-  each field names its successor and `moveTo` opens that fold before asking for
-  focus. Walking the form never drops out of focus mode.
-- A form that opens on its first field autofocuses once and never again. That
-  field is unmounted while another one is being typed into, and an autofocus
-  firing as it comes back would take the keyboard straight off Done.
-
-A folded field is also out of its `Form`, so `validate()` cannot see it. Nothing
-saves from inside focus mode for that reason: Done is the only action offered,
-and Save comes back with the rest of the form.
+Forms used to fold everything but the focused field away and offer Done in place
+of Save while the keyboard was up. That was taken out deliberately, and should
+not come back without a decision to bring it back.
 
 ## Security boundaries
 
@@ -267,6 +253,7 @@ forgets one should fail closed rather than open with a known value.
 |---|---|---|
 | Development auth adapter | Refused when `APP_ENV=production` | Never |
 | Standalone host access | Two defines, both default false | Never; enforced by `test_ci_policy.py` |
+| Plain HTTP to a local backend | Debug build and a loopback host only | Never; a release build refuses it, pinned by `host_config_test.dart` |
 | In-memory repository | Selected by the caller of `GradusFeature` | Never the default in a remote build |
 | API documentation | Refused when `APP_ENV=production` | Never |
 
@@ -302,10 +289,12 @@ Read this before assuming the service is deployable.
   cannot decide, it refuses. Nothing stores an idempotency key or a version yet,
   so no mutating endpoint may be described as idempotent.
 - **A syllabus leaves the device.** The document is uploaded to this service and
-  its text is sent to Anthropic to be read. Syllabi are public course documents
-  rather than student records, nothing is stored, and the student is told before
-  the upload - but it is the one place where something the student chose travels
-  off their phone.
+  its text is sent to the configured model provider - Gemini by default - to be
+  read. Syllabi are public course documents rather than student records and
+  nothing is stored, but it is the one place where something the student chose
+  travels off their phone, and the import card no longer says so before the
+  upload. Nothing else in the app says it either, so a store listing or a
+  privacy notice is where it would have to be stated.
 - **Extraction quality varies with the document.** Syllabi share no layout; the
   three seen so far span two unrelated templates and a free-form Word document,
   and the table changes again with the instructor and the term for the same
@@ -351,8 +340,9 @@ Read this before assuming the service is deployable.
 - **The identity behind it is this project's own.** No separate host
   application has agreed an issuer, so the deployment signs and verifies with
   one HS256 secret. It authenticates, but only against tokens minted here.
-- **No golden tests, no device integration tests, and the client has never run
-  against the deployed backend.**
+- **No golden tests and no device integration tests.** The client has run end
+  to end by hand once, on an iOS simulator against a local backend, and never
+  against the deployed one, which accepts only tokens minted with its own secret.
 
 ### Threat model
 

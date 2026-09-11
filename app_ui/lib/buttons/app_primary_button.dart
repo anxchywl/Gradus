@@ -14,6 +14,7 @@ class AppPrimaryButton extends StatefulWidget {
     this.width,
     this.height,
     this.size = AppButtonSize.large,
+    this.color,
   });
 
   final String text;
@@ -32,6 +33,9 @@ class AppPrimaryButton extends StatefulWidget {
 
   final AppButtonSize size;
 
+  // a destructive action passes its own colour; everything else is the brand
+  final Color? color;
+
   double get _height => height ?? size.height;
 
   @override
@@ -46,6 +50,7 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
     final effectiveOnPressed = widget.isEnabled && !widget.isLoading
         ? widget.onPressed
         : null;
+    final background = widget.color ?? AppColors.primary;
 
     return Listener(
       onPointerDown: (_) {
@@ -57,23 +62,39 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
         scale: _isPressed ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeInOutCubic,
-        child: SizedBox(
-          width: widget.width ?? double.infinity,
-          height: widget._height,
-          child: ElevatedButton(
-            onPressed: effectiveOnPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
-              disabledForegroundColor: AppColors.white.withValues(alpha: 0.7),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: AppSpacing.borderRadiusMd,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: AppSpacing.borderRadiusDf,
+            // a soft glow in the button's own colour lifts it off the surface,
+            // and goes with the colour when the button cannot be pressed
+            boxShadow: effectiveOnPressed == null
+                ? const []
+                : [
+                    BoxShadow(
+                      color: background.withValues(alpha: 0.28),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+          ),
+          child: SizedBox(
+            width: widget.width ?? double.infinity,
+            height: widget._height,
+            child: ElevatedButton(
+              onPressed: effectiveOnPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: background,
+                foregroundColor: AppColors.white,
+                disabledBackgroundColor: background.withValues(alpha: 0.5),
+                disabledForegroundColor: AppColors.white.withValues(alpha: 0.7),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppSpacing.borderRadiusDf,
+                ),
+                padding: widget.size.padding,
               ),
-              padding: widget.size.padding,
+              child: _buildChild(),
             ),
-            child: _buildChild(),
           ),
         ),
       ),

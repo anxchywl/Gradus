@@ -38,6 +38,7 @@ class CourseDetailScreen extends StatelessWidget {
 
     final assignment = await showModalBottomSheet<Assignment>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       // mounted on the host overlay, so the delegate is installed again
       builder: (_) => GradusStringsScope(
@@ -68,6 +69,7 @@ class CourseDetailScreen extends StatelessWidget {
 
     final next = await showModalBottomSheet<Course>(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       builder: (_) => GradusStringsScope(
         child: CourseForm(
@@ -237,6 +239,9 @@ class CourseDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                       child: _AssignmentRow(
                         assignment: assignment,
+                        reservesBadge: course.assignments.any(
+                          (entry) => entry.isGraded,
+                        ),
                         letter: scale.forPercentage(
                           assignment.percentage ?? -1,
                         ),
@@ -360,7 +365,7 @@ class _CourseSummary extends StatelessWidget {
             ),
           ],
           if (percentage != null) ...[
-            AppSpacing.verticalLg,
+            if (resolved.grade != null) AppSpacing.verticalLg,
             Text(
               strings.currentGrade,
               textAlign: TextAlign.center,
@@ -384,7 +389,12 @@ class _CourseSummary extends StatelessWidget {
               child: GradusNote(text: note),
             ),
           ],
-          AppSpacing.verticalLg,
+          // with nothing graded the stats are the whole card, not a row under
+          // an empty space
+          if (resolved.grade != null ||
+              percentage != null ||
+              _exception(strings) != null)
+            AppSpacing.verticalLg,
           // one row: what it could reach, what it belongs to, what it is
           // worth - the middle column keeps the term centred in the card
           Row(
@@ -437,10 +447,15 @@ class _AssignmentRow extends StatelessWidget {
   const _AssignmentRow({
     required this.assignment,
     required this.letter,
+    required this.reservesBadge,
     required this.onOpen,
   });
 
   final Assignment assignment;
+
+  // true when another row has a badge, so this one keeps its room and the
+  // names stay in one column
+  final bool reservesBadge;
 
   // null when the scale cannot letter this mark, or there is no mark
   final Grade? letter;
@@ -457,11 +472,13 @@ class _AssignmentRow extends StatelessWidget {
       padding: AppSpacing.cardPaddingSm,
       child: Row(
         children: [
-          GradusGradeBadge(
-            letter: letter?.letter ?? strings.valueUnavailable,
-            countsTowardGpa: isGraded,
-          ),
-          AppSpacing.horizontalMd,
+          if (isGraded && letter != null) ...[
+            GradusGradeBadge(letter: letter!.letter),
+            AppSpacing.horizontalMd,
+          ] else if (reservesBadge) ...[
+            const SizedBox(width: AppSpacing.avatarLg),
+            AppSpacing.horizontalMd,
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -27,10 +27,14 @@ scripts/      verify.sh and the coverage floor
 ```bash
 cp .env.example .env          # then fill in the empty values
 
-cd backend
-uv sync --extra dev
-uv run uvicorn app.main:create_app --factory --reload --port 8000
+uv sync --project backend --extra dev
+uv run --project backend uvicorn app.main:create_app --factory --app-dir backend --reload --port 8000
 ```
+
+Run it from the repository root. Settings read `.env` from the working directory,
+and that is where the file lives; started from `backend/`, the service finds no
+`.env`, comes up as production with the host adapter and no syllabus key, and
+refuses every token.
 
 The app is built by a factory rather than at import, so importing
 `app.main` never requires a configured environment.
@@ -44,8 +48,18 @@ cd gradus_app
 flutter run \
   --dart-define=ENABLE_DEV_ACCESS=true \
   --dart-define=GRADUS_ACCESS_TOKEN="$DEVELOPMENT_AUTH_TOKEN" \
-  --dart-define=GRADUS_OPERATOR_ACCESS_TOKEN="$DEVELOPMENT_OPERATOR_AUTH_TOKEN"
+  --dart-define=GRADUS_OPERATOR_ACCESS_TOKEN="$DEVELOPMENT_OPERATOR_AUTH_TOKEN" \
+  --dart-define=GRADUS_BACKEND=remote \
+  --dart-define=GRADUS_API_BASE_URL=http://localhost:8000
 ```
+
+`GRADUS_BACKEND` defaults to `sample`, which keeps everything on the device and
+offers no syllabus import. `remote` sends a chosen syllabus to
+`GRADUS_API_BASE_URL`, which must be https unless it is a backend on this
+machine reached from a debug build. An Android emulator sees this machine as
+`10.0.2.2`, which that rule refuses, so forward the port with
+`adb reverse tcp:8000 tcp:8000` and keep `localhost`. A mistyped value shows a
+closed screen rather than quietly running without a backend.
 
 Long-press anywhere to switch between the student and operator development
 sessions. That changes which token is sent; the backend decides what the token

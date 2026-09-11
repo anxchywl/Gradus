@@ -32,6 +32,7 @@ class AppTheme {
       textButtonTheme: _textButtonTheme(),
       inputDecorationTheme: _inputDecorationTheme(isLight: true),
       cardTheme: _cardTheme(isLight: true),
+      bottomSheetTheme: _bottomSheetTheme(isLight: true),
       bottomNavigationBarTheme: _bottomNavBarTheme(isLight: true),
       tabBarTheme: const TabBarThemeData(
         splashFactory: NoSplash.splashFactory,
@@ -72,6 +73,7 @@ class AppTheme {
       textButtonTheme: _textButtonThemeDark(),
       inputDecorationTheme: _inputDecorationTheme(isLight: false),
       cardTheme: _cardTheme(isLight: false),
+      bottomSheetTheme: _bottomSheetTheme(isLight: false),
       bottomNavigationBarTheme: _bottomNavBarTheme(isLight: false),
       tabBarTheme: const TabBarThemeData(
         splashFactory: NoSplash.splashFactory,
@@ -287,30 +289,27 @@ class AppTheme {
   }
 
   static InputDecorationTheme _inputDecorationTheme({required bool isLight}) {
+    // a light field with a hairline edge reads as a place to type; the edge
+    // takes the brand colour while the field holds the cursor
+    final radius = BorderRadius.circular(14);
+    final edge = isLight ? AppColors.lightGrey : const Color(0xFF3A3A3A);
+    final focus = isLight ? AppColors.primary : AppColors.primaryAccentDark;
+    OutlineInputBorder outline(Color color, [double width = 1]) =>
+        OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide(color: color, width: width),
+        );
+
     return InputDecorationTheme(
       filled: true,
-      fillColor: isLight ? AppColors.fieldBackground : const Color(0xFF2E2E2E),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.red, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.red, width: 1.5),
-      ),
+      fillColor: isLight ? AppColors.background : const Color(0xFF262626),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: outline(edge),
+      enabledBorder: outline(edge),
+      disabledBorder: outline(edge.withValues(alpha: 0.5)),
+      focusedBorder: outline(focus, 1.5),
+      errorBorder: outline(AppColors.red, 1.5),
+      focusedErrorBorder: outline(AppColors.red, 1.5),
       hintStyle: const TextStyle(
         fontFamily: 'Geist',
         fontSize: 14,
@@ -326,6 +325,15 @@ class AppTheme {
         fontSize: 12,
         color: AppColors.red,
       ),
+    );
+  }
+
+  // every sheet shows it can be pulled away, the same way on every screen
+  static BottomSheetThemeData _bottomSheetTheme({required bool isLight}) {
+    return BottomSheetThemeData(
+      showDragHandle: true,
+      dragHandleColor: isLight ? AppColors.lightGrey : const Color(0xFF3A3A3A),
+      dragHandleSize: const Size(36, 4),
     );
   }
 

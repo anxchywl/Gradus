@@ -153,7 +153,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Still reading, this can take a moment'), findsNothing);
-    expect(find.text('Fill from syllabus'), findsOneWidget);
+    expect(find.text('Filled from syllabus'), findsOneWidget);
   });
 
   testWidgets('a read that returns quickly never escalates the wait', (
@@ -202,8 +202,9 @@ void main() {
     await tester.tap(find.text('Fill from syllabus'));
     await tester.pump();
 
-    // the sheet closing while a read is in flight must not strand the timer
-    await tester.tap(find.text('Cancel'));
+    // the sheet closing while a read is in flight must not strand the timer;
+    // it has no cancel of its own, so it is left the way a sheet is dismissed
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
 
     pending.complete(complete);
@@ -219,7 +220,7 @@ void main() {
     expect(find.text('Fill from syllabus'), findsNothing);
   });
 
-  testWidgets('an import fills the fields and lists what it proposed', (
+  testWidgets('an import fills the fields and says only that it did', (
     tester,
   ) async {
     await tester.pumpWidget(host(onImport: () async => complete));
@@ -234,8 +235,32 @@ void main() {
       findsOneWidget,
     );
     expect(find.widgetWithText(TextFormField, '8'), findsOneWidget);
-    expect(find.text('Midterm'), findsOneWidget);
-    expect(find.text('Final'), findsOneWidget);
+    // the assignments are reviewed on the course once saved, not listed here
+    expect(find.text('Filled from syllabus'), findsOneWidget);
+    expect(find.text('Midterm'), findsNothing);
+    expect(find.textContaining('assignments'), findsNothing);
+  });
+
+  testWidgets('a finished read is not started again from the card', (
+    tester,
+  ) async {
+    var calls = 0;
+    await tester.pumpWidget(
+      host(
+        onImport: () async {
+          calls++;
+          return complete;
+        },
+      ),
+    );
+    await openSheet(tester);
+    await tester.tap(find.text('Fill from syllabus'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Filled from syllabus'));
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
   });
 
   testWidgets('nothing is saved until save is tapped', (tester) async {
@@ -278,27 +303,7 @@ void main() {
     );
   });
 
-  testWidgets('an imported entry can be dropped before saving', (tester) async {
-    Course? saved;
-    await tester.pumpWidget(
-      host(onImport: () async => complete, onSaved: (course) => saved = course),
-    );
-    await openSheet(tester);
-    await tester.tap(find.text('Fill from syllabus'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.bySemanticsLabel('Remove Midterm'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Midterm'), findsNothing);
-
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
-
-    expect(saved!.assignments.single.name, 'Final');
-  });
-
-  testWidgets('weights over budget block the save rather than being scaled', (
+  testWidgets('weights over budget are left out rather than scaled', (
     tester,
   ) async {
     Course? saved;
@@ -320,19 +325,15 @@ void main() {
     await tester.tap(find.text('Fill from syllabus'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('over 100%'), findsOneWidget);
+    expect(find.textContaining('more than a course can hold'), findsOneWidget);
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(saved, isNull);
-
-    await tester.tap(find.bySemanticsLabel('Remove Midterm'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
-
-    expect(saved!.assignments.single.name, 'Final');
+    // the course keeps what was read about it; trimming the weights to fit
+    // would be a guess, so none of them are kept
+    expect(saved!.title, 'Linear Algebra');
+    expect(saved!.assignments, isEmpty);
   });
 
   testWidgets('a refusal is named rather than passing silently', (
@@ -363,10 +364,17 @@ void main() {
     expect(find.textContaining('could not'), findsNothing);
   });
 
-  testWidgets('the control says where the document goes', (tester) async {
+  testWidgets('the divider offers typing until a read has filled the form', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(onImport: () async => complete));
     await openSheet(tester);
 
-    expect(find.textContaining('sent to the Gradus server'), findsOneWidget);
+    expect(find.text('OR ENTER IT YOURSELF'), findsOneWidget);
+
+    await tester.tap(find.text('Fill from syllabus'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('OR ENTER IT YOURSELF'), findsNothing);
   });
 }

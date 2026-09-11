@@ -52,38 +52,50 @@ class _Host extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isDevelopmentAccessAllowed) {
-      return const _Closed();
+      return const _Closed('This build does not permit standalone access.');
+    }
+
+    final GradusConfig config;
+    try {
+      config = hostConfig;
+    } on ArgumentError catch (error) {
+      return _Closed('This build names a backend it cannot use: $error');
     }
 
     final token = tokenFor(role);
     if (token.isEmpty) {
-      return const _Closed(missingToken: true);
+      return const _Closed('No development token was supplied to this build.');
     }
+
+    final baseUri = config.baseUri;
 
     return GestureDetector(
       // debug affordance only; it changes which token is sent, never a claim
       onLongPress: onSwitchRole,
       child: GradusFeature(
         session: GradusSession(accessToken: token, accountId: role.name),
-        // courses persist on this device, namespaced per development identity
-        dependencies: createLocalDependencies(accountId: role.name),
-        config: const GradusConfig.sample(),
+        // courses persist on this device, namespaced per development identity;
+        // syllabus import exists only when the build names a backend to read them
+        dependencies: createLocalDependencies(
+          accountId: role.name,
+          syllabus: baseUri == null
+              ? null
+              : createSyllabusImporter(baseUri: baseUri, accessToken: token),
+        ),
+        config: config,
       ),
     );
   }
 }
 
 class _Closed extends StatelessWidget {
-  const _Closed({this.missingToken = false});
+  const _Closed(this.message);
 
-  final bool missingToken;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     // host-shell diagnostics, never shown to a student, so not localized
-    final message = missingToken
-        ? 'No development token was supplied to this build.'
-        : 'This build does not permit standalone access.';
     return Scaffold(
       body: Center(
         child: Padding(padding: AppSpacing.screenPadding, child: Text(message)),
