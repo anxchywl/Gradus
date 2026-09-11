@@ -25,6 +25,8 @@ feature never signs anyone in and holds no account of its own.
   assessment table, proposed for the student to confirm
 - See a course grade computed from marked work only, with the unallocated
   weight and the maximum still reachable named rather than assumed
+- Focus mode: with the phone's keyboard up, only the field being typed into
+  stays on screen, with a Back button to return to the whole form
 - English, Russian and Kazakh
 
 Sign-in, server-side storage, registrar and Moodle import, grade projections and

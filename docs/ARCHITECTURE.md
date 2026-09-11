@@ -169,15 +169,29 @@ and a grid would pad every one of them out to the tallest.
 
 ## Forms and the keyboard
 
-A field that takes the keyboard leaves the rest of the form in place. The sheet
-pads itself by the keyboard's height and scrolls, so the field being typed into
-stays in view and Save is always the same button. The keyboard's next-field key
-follows the form's reading order, and the last field's key puts the keyboard
-away.
+A sheet on a phone gives up most of its height the moment the on-screen keyboard
+arrives, and what is left is usually the wrong half. So every form runs focus
+mode, in `presentation/focus_mode.dart`, taken from Muto's sheets so the apps
+behave alike: while a field holds the keyboard, everything that is not that
+field folds away - heading, other fields, pickers, the gaps between them - and
+the sheet's actions give way to a single Back button that puts the keyboard away
+and brings the whole form back.
 
-Forms used to fold everything but the focused field away and offer Done in place
-of Save while the keyboard was up. That was taken out deliberately, and should
-not come back without a decision to bring it back.
+It keys on the keyboard being on screen, read from the view's insets, rather
+than on focus alone. A field can hold focus with no keyboard showing - a
+simulator with a hardware keyboard is the everyday case - and then there is no
+height to recover, so nothing folds.
+
+Two consequences of folding a field out of the tree rather than hiding it:
+
+- The keyboard's next-field key cannot find a node that is not mounted, so each
+  field names its successor and `moveTo` opens that fold before asking for
+  focus.
+- A form that opens on its first field autofocuses once and never again, or that
+  field would take the keyboard back every time it unfolded.
+
+A folded field is also out of its `Form`, so `validate()` cannot see it. Nothing
+saves from inside focus mode for that reason: Back is the only action it offers.
 
 ## Security boundaries
 

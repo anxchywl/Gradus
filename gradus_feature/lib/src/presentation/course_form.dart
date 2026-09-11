@@ -11,6 +11,7 @@ import '../domain/semester.dart';
 import '../domain/syllabus.dart';
 import '../domain/weights.dart';
 import '../l10n/gradus_strings.dart';
+import 'focus_mode.dart';
 import 'gradus_formatting.dart';
 import 'gradus_widgets.dart';
 
@@ -25,6 +26,8 @@ const Curve _chooserCurve = Curves.easeOutCubic;
 
 // which chooser has taken the sheet over, if any
 enum _Chooser { semester, grade }
+
+enum _Field { title, code, credits }
 
 // what the syllabus did not state, named on screen rather than guessed
 enum _MissingField { code, title, credits, assignments }
@@ -60,6 +63,7 @@ class CourseForm extends StatefulWidget {
 
 class _CourseFormState extends State<CourseForm> {
   final _formKey = GlobalKey<FormState>();
+  final SheetFocusMode _focus = SheetFocusMode();
   late final TextEditingController _code = TextEditingController(
     text: widget.existing?.code ?? '',
   );
@@ -108,6 +112,7 @@ class _CourseFormState extends State<CourseForm> {
     _code.dispose();
     _title.dispose();
     _credits.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -293,39 +298,50 @@ class _CourseFormState extends State<CourseForm> {
   @override
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        padding: gradusSheetPadding(context),
-        child: AnimatedSize(
-          duration: _chooserDuration,
-          curve: _chooserCurve,
-          alignment: Alignment.bottomCenter,
-          child: AnimatedSwitcher(
-            duration: _chooserDuration,
-            switchInCurve: _chooserCurve,
-            switchOutCurve: Curves.easeInCubic,
-            layoutBuilder: (current, previous) => Stack(
+    return ListenableBuilder(
+      listenable: _focus,
+      builder: (context, _) {
+        _focus.setKeyboardVisible(MediaQuery.viewInsetsOf(context).bottom > 0);
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: SingleChildScrollView(
+            padding: gradusSheetPadding(context),
+            child: AnimatedSize(
+              duration: _chooserDuration,
+              curve: _chooserCurve,
               alignment: Alignment.bottomCenter,
-              children: [
-                for (final child in previous)
-                  Positioned(bottom: 0, left: 0, right: 0, child: child),
-                ?current,
-              ],
-            ),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.97, end: 1).animate(animation),
-                child: child,
+              child: AnimatedSwitcher(
+                duration: _chooserDuration,
+                switchInCurve: _chooserCurve,
+                switchOutCurve: Curves.easeInCubic,
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    for (final child in previous)
+                      Positioned(bottom: 0, left: 0, right: 0, child: child),
+                    ?current,
+                  ],
+                ),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween<double>(
+                      begin: 0.97,
+                      end: 1,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: _chooser != null
+                    ? _panel(context, strings)
+                    : _fields(context, strings),
               ),
             ),
-            child: _chooser != null
-                ? _panel(context, strings)
-                : _fields(context, strings),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -408,96 +424,128 @@ class _CourseFormState extends State<CourseForm> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            GradusSheetTitle(
-              text: widget.existing == null
-                  ? strings.addCourse
-                  : strings.editCourse,
-            ),
-            AppSpacing.verticalDf,
-            ..._importCard(strings),
-          ],
-        ),
-        GradusField(
-          label: strings.courseTitle,
-          child: TextFormField(
-            controller: _title,
-            enabled: !_isImporting,
-            textInputAction: TextInputAction.next,
-            validator: (value) =>
-                (value ?? '').trim().isEmpty ? strings.titleRequired : null,
+        // the sheet's own AnimatedSize carries every height change here, so
+        // the folds collapse at once rather than animating against it
+        FocusFold(
+          hidden: _focus.hidesChrome,
+          animateSize: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              GradusSheetTitle(
+                text: widget.existing == null
+                    ? strings.addCourse
+                    : strings.editCourse,
+              ),
+              AppSpacing.verticalDf,
+              ..._importCard(strings),
+            ],
           ),
         ),
-        AppSpacing.verticalDf,
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: GradusField(
-                label: strings.courseCode,
-                child: TextFormField(
-                  controller: _code,
-                  enabled: !_isImporting,
-                  textInputAction: TextInputAction.next,
-                ),
-              ),
+        FocusFold(
+          hidden: _focus.hides(_Field.title),
+          animateSize: false,
+          child: GradusField(
+            label: strings.courseTitle,
+            child: TextFormField(
+              controller: _title,
+              focusNode: _focus.nodeFor(_Field.title),
+              enabled: !_isImporting,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => _focus.moveTo(_Field.code),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? strings.titleRequired : null,
             ),
-            AppSpacing.horizontalMd,
-            Expanded(
-              flex: 2,
-              child: GradusField(
-                label: strings.courseCredits,
-                child: TextFormField(
-                  controller: _credits,
-                  enabled: !_isImporting,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  textInputAction: TextInputAction.done,
-                  validator: (value) {
-                    final credits = double.tryParse((value ?? '').trim());
-                    if (credits == null ||
-                        credits <= 0 ||
-                        credits > Course.maximumCredits) {
-                      return strings.creditsRequired;
-                    }
-                    return null;
-                  },
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppSpacing.verticalDf,
-            GradusChooserField(
-              isEnabled: !_isImporting,
-              label: strings.semesterLabel,
-              value: _semesterLabel(strings),
-              onTap: () => setState(() => _chooser = _Chooser.semester),
-            ),
-            AppSpacing.verticalDf,
-            GradusChooserField(
-              isEnabled: !_isImporting,
-              label: strings.courseGrade,
-              value: _grade?.letter ?? strings.gradeNotSet,
-              onTap: () => setState(() => _chooser = _Chooser.grade),
-            ),
-          ],
+        FocusGap(hidden: _focus.hidesChrome, animateSize: false),
+        // a code and its credits share a line and fold as one, the way a mark
+        // and its total do
+        FocusFold(
+          hidden: _focus.hides(_Field.code) && _focus.hides(_Field.credits),
+          animateSize: false,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: GradusField(
+                  label: strings.courseCode,
+                  child: TextFormField(
+                    controller: _code,
+                    focusNode: _focus.nodeFor(_Field.code),
+                    enabled: !_isImporting,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) => _focus.moveTo(_Field.credits),
+                  ),
+                ),
+              ),
+              AppSpacing.horizontalMd,
+              Expanded(
+                flex: 2,
+                child: GradusField(
+                  label: strings.courseCredits,
+                  child: TextFormField(
+                    controller: _credits,
+                    focusNode: _focus.nodeFor(_Field.credits),
+                    enabled: !_isImporting,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _focus.release(),
+                    validator: (value) {
+                      final credits = double.tryParse((value ?? '').trim());
+                      if (credits == null ||
+                          credits <= 0 ||
+                          credits > Course.maximumCredits) {
+                        return strings.creditsRequired;
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // chrome: none of it holds the keyboard
+        FocusFold(
+          hidden: _focus.hidesChrome,
+          animateSize: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppSpacing.verticalDf,
+              GradusChooserField(
+                isEnabled: !_isImporting,
+                label: strings.semesterLabel,
+                value: _semesterLabel(strings),
+                onTap: () => setState(() => _chooser = _Chooser.semester),
+              ),
+              AppSpacing.verticalDf,
+              GradusChooserField(
+                isEnabled: !_isImporting,
+                label: strings.courseGrade,
+                value: _grade?.letter ?? strings.gradeNotSet,
+                onTap: () => setState(() => _chooser = _Chooser.grade),
+              ),
+            ],
+          ),
         ),
         AppSpacing.verticalXl,
-        GradusFormActions(
-          primaryLabel: strings.save,
-          onPrimary: _submit,
-          isPrimaryEnabled: !_isImporting,
-          secondaryLabel: widget.onDelete == null ? null : strings.delete,
-          onSecondary: widget.onDelete == null ? null : _dismiss,
-          isSecondaryDestructive: true,
+        FocusModeActions(
+          isTyping: _focus.isTyping,
+          backLabel: strings.back,
+          onBack: _focus.release,
+          actions: GradusFormActions(
+            primaryLabel: strings.save,
+            onPrimary: _submit,
+            isPrimaryEnabled: !_isImporting,
+            secondaryLabel: widget.onDelete == null ? null : strings.delete,
+            onSecondary: widget.onDelete == null ? null : _dismiss,
+            isSecondaryDestructive: true,
+          ),
         ),
       ],
     ),

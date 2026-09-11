@@ -38,6 +38,13 @@ class _GradusHostAppState extends State<GradusHostApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: supportedGradusLocales,
+      // the phone's own text size still counts, within the range the layouts
+      // were drawn for, so no device's setting scales the app out of shape
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 0.9,
+        maxScaleFactor: 1.2,
+        child: child!,
+      ),
       home: _Host(role: _role, onSwitchRole: _switchRole),
     );
   }

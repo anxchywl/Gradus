@@ -62,8 +62,6 @@
   "weightPercent": "{value}%",
   "scoreOutOf": "{earned}/{maximum}",
   "courseUnavailable": "Этот курс больше недоступен.",
-  "noSemestersBody": "Создайте семестр, затем добавьте курсы, которые вы изучаете.",
-  "noCoursesBody": "Добавьте курс, чтобы увидеть GPA за этот семестр.",
   "loadFailedBody": "При чтении данных с устройства произошла ошибка.",
   "retry": "Повторить",
   "semesterActions": "Действия с семестром",

@@ -497,17 +497,18 @@ class GradusSectionHeader extends StatelessWidget {
 class GradusEmptyState extends StatelessWidget {
   const GradusEmptyState({
     super.key,
-    required this.icon,
     required this.title,
-    required this.message,
+    this.icon,
+    this.message,
     this.actionLabel,
     this.onAction,
     this.tone = GradusTone.neutral,
   });
 
-  final AppIconData icon;
+  // a failure explains itself; an empty screen needs only its title
+  final AppIconData? icon;
   final String title;
-  final String message;
+  final String? message;
   final String? actionLabel;
   final VoidCallback? onAction;
   final GradusTone tone;
@@ -519,19 +520,21 @@ class GradusEmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: AppSpacing.cardPadding,
-            decoration: BoxDecoration(
-              color: _toneBackground(tone, context),
-              shape: BoxShape.circle,
+          if (icon case final icon?) ...[
+            Container(
+              padding: AppSpacing.cardPadding,
+              decoration: BoxDecoration(
+                color: _toneBackground(tone, context),
+                shape: BoxShape.circle,
+              ),
+              child: AppIcon(
+                icon,
+                size: AppSpacing.iconLg,
+                color: _toneForeground(tone, context),
+              ),
             ),
-            child: AppIcon(
-              icon,
-              size: AppSpacing.iconLg,
-              color: _toneForeground(tone, context),
-            ),
-          ),
-          AppSpacing.verticalLg,
+            AppSpacing.verticalLg,
+          ],
           Text(
             title,
             textAlign: TextAlign.center,
@@ -539,24 +542,27 @@ class GradusEmptyState extends StatelessWidget {
               color: gradusPrimaryText(context),
             ),
           ),
-          AppSpacing.verticalSm,
-          ConstrainedBox(
-            // a measure that stays readable rather than one long line
-            constraints: const BoxConstraints(maxWidth: AppSpacing.xxxxl * 5),
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+          if (message case final message?) ...[
+            AppSpacing.verticalSm,
+            ConstrainedBox(
+              // a measure that stays readable rather than one long line
+              constraints: const BoxConstraints(maxWidth: AppSpacing.xxxxl * 5),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
-          ),
+          ],
           if (actionLabel != null && onAction != null) ...[
             AppSpacing.verticalXl,
-            AppPrimaryButton(
-              text: actionLabel!,
-              onPressed: onAction,
-              width: AppSpacing.xxxxl * 4,
+            // the width a thumb expects on a phone, held to the measure of
+            // the text above so a tablet does not stretch it edge to edge
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: AppSpacing.xxxxl * 5),
+              child: AppPrimaryButton(text: actionLabel!, onPressed: onAction),
             ),
           ],
         ],

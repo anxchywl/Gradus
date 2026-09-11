@@ -126,7 +126,10 @@ class _GpaScreenState extends State<GradusScreen> {
         builder: (context, _) => CustomScrollView(
           slivers: [
             // the header gives the list its room back on the way down
-            AppSliverAppBar(title: strings.featureTitle),
+            // an account with nothing in it gets the screen to its one way
+            // forward, without a title over it
+            if (controller.semesters.isNotEmpty)
+              AppSliverAppBar(title: strings.featureTitle),
             ..._content(context, controller, strings),
           ],
         ),
@@ -163,9 +166,7 @@ class _GpaScreenState extends State<GradusScreen> {
       return [
         fills(
           GradusEmptyState(
-            icon: AppIcons.calendar,
             title: strings.noSemesters,
-            message: strings.noSemestersBody,
             actionLabel: strings.addSemester,
             onAction: _openSemesterForm,
           ),
@@ -177,6 +178,8 @@ class _GpaScreenState extends State<GradusScreen> {
       SliverToBoxAdapter(
         child: _SemesterBar(
           controller: controller,
+          // with nothing to average, the GPA panel has nothing to say
+          showSummary: controller.entries.isNotEmpty,
           onAddSemester: _openSemesterForm,
           onEditSemester: (semester) => _openSemesterForm(existing: semester),
         ),
@@ -202,11 +205,13 @@ class _GpaScreenState extends State<GradusScreen> {
 class _SemesterBar extends StatelessWidget {
   const _SemesterBar({
     required this.controller,
+    required this.showSummary,
     required this.onAddSemester,
     required this.onEditSemester,
   });
 
   final GradusController controller;
+  final bool showSummary;
   final VoidCallback onAddSemester;
   final void Function(Semester) onEditSemester;
 
@@ -239,22 +244,25 @@ class _SemesterBar extends StatelessWidget {
             ),
           ),
         ),
-        Padding(
-          padding: AppSpacing.screenPadding,
-          child: CenteredContent(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                // full width would put the label and the figure far apart
-                constraints: const BoxConstraints(maxWidth: gradusReadingWidth),
-                child: _SummaryCard(
-                  controller: controller,
-                  onEditSemester: onEditSemester,
+        if (showSummary)
+          Padding(
+            padding: AppSpacing.screenPadding,
+            child: CenteredContent(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  // full width would put the label and the figure far apart
+                  constraints: const BoxConstraints(
+                    maxWidth: gradusReadingWidth,
+                  ),
+                  child: _SummaryCard(
+                    controller: controller,
+                    onEditSemester: onEditSemester,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -401,9 +409,7 @@ class _EmptySemester extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = GradusStrings.of(context);
     return GradusEmptyState(
-      icon: AppIcons.book,
       title: strings.noCourses,
-      message: strings.noCoursesBody,
       actionLabel: strings.addCourse,
       onAction: onAddCourse,
     );

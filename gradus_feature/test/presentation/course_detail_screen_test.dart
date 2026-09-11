@@ -591,7 +591,39 @@ void main() {
     expect(credits.dx, greaterThan(maximum.dx));
   });
 
-  testWidgets('a field with the keyboard up leaves the assignment form whole', (
+  testWidgets('Back leaves focus mode once for good', (tester) async {
+    await tester.pumpWidget(_host(_FakeTranscriptRepository(_transcript())));
+    await _openCourse(tester);
+    await _tapAddAssignment(tester);
+
+    Finder inForm(String text) => find.descendant(
+      of: find.byType(AssignmentForm),
+      matching: find.text(text),
+    );
+
+    // nothing in a widget test raises the view's insets on its own
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+
+    expect(inForm('Assignment name'), findsNothing);
+
+    await tester.tap(inForm('Back'));
+    await tester.pumpAndSettle();
+
+    expect(
+      inForm('Save'),
+      findsOneWidget,
+      reason:
+          'the form opens on its first field, and that field coming back '
+          'must not take the keyboard again',
+    );
+    expect(inForm('Back'), findsNothing);
+  });
+
+  testWidgets('a score keeps its total beside it while the keyboard is up', (
     tester,
   ) async {
     await tester.pumpWidget(_host(_FakeTranscriptRepository(_transcript())));
@@ -609,16 +641,16 @@ void main() {
     await tester.tap(find.byType(TextFormField).at(2));
     await tester.pumpAndSettle();
 
-    // typing into one field folds nothing else away, and Save stays Save
-    for (final label in const [
-      'Assignment name',
-      'Weight',
-      'Max score',
-      'Obtained score',
-      'Save',
-    ]) {
-      expect(inForm(label), findsOneWidget, reason: label);
-    }
-    expect(inForm('Done'), findsNothing);
+    expect(inForm('Weight'), findsNothing);
+    expect(inForm('Save'), findsNothing);
+    expect(inForm('Back'), findsOneWidget);
+    expect(
+      inForm('Max score'),
+      findsOneWidget,
+      reason:
+          'a mark and the total it is out of are one field to a student, '
+          'so folding one away leaves the other meaningless',
+    );
+    expect(inForm('Obtained score'), findsOneWidget);
   });
 }

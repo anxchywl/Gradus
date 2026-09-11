@@ -190,8 +190,6 @@
     }
   },
   "courseUnavailable": "This course is no longer available.",
-  "noSemestersBody": "Create a semester, then add the courses you are taking.",
-  "noCoursesBody": "Add a course to see your GPA for this semester.",
   "loadFailedBody": "Something went wrong reading this device.",
   "retry": "Try again",
   "semesterActions": "Semester options",

@@ -62,8 +62,6 @@
   "weightPercent": "{value}%",
   "scoreOutOf": "{earned}/{maximum}",
   "courseUnavailable": "Бұл курс енді қолжетімді емес.",
-  "noSemestersBody": "Семестр жасаңыз, содан кейін оқып жатқан курстарыңызды қосыңыз.",
-  "noCoursesBody": "Осы семестрдегі GPA көру үшін курс қосыңыз.",
   "loadFailedBody": "Осы құрылғыдан деректерді оқу кезінде қате шықты.",
   "retry": "Қайталау",
   "semesterActions": "Семестр әрекеттері",
