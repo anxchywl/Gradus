@@ -178,8 +178,8 @@ class _GpaScreenState extends State<GradusScreen> {
       SliverToBoxAdapter(
         child: _SemesterBar(
           controller: controller,
-          // with nothing to average, the GPA panel has nothing to say
-          showSummary: controller.entries.isNotEmpty,
+          // until something is graded the panel has no figure to show
+          showSummary: controller.result.attemptedCredits > 0,
           onAddSemester: _openSemesterForm,
           onEditSemester: (semester) => _openSemesterForm(existing: semester),
         ),
@@ -244,6 +244,9 @@ class _SemesterBar extends StatelessWidget {
             ),
           ),
         ),
+        // the summary's own padding used to hold the chips off whatever
+        // follows them; without it the list would run into the chips
+        if (!showSummary) AppSpacing.verticalDf,
         if (showSummary)
           Padding(
             padding: AppSpacing.screenPadding,

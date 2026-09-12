@@ -1002,7 +1002,17 @@ void main() {
     await tester.pumpWidget(
       _host(
         repository: _FakeTranscriptRepository(
-          transcript: _oneTerm([_course('1', 3, grade: null)]),
+          transcript: _oneTerm([
+            _course(
+              '1',
+              3,
+              grade: const Grade(
+                letter: 'P',
+                qualityPoints: 0,
+                countsTowardGpa: false,
+              ),
+            ),
+          ]),
         ),
       ),
     );
@@ -1034,6 +1044,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('—'), findsNothing);
+  });
+
+  testWidgets('an ungraded course leaves the panel off the screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        repository: _FakeTranscriptRepository(
+          transcript: _oneTerm([_course('1', 3, grade: null)]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Course 1'), findsOneWidget);
+    // an average of nothing says nothing; the course list is the whole screen
+    expect(find.text('Semester GPA'), findsNothing);
+    expect(find.text('Not enough graded credits yet'), findsNothing);
+
+    // the panel used to hold the chips off the list, so its absence must not
+    // leave the first course sitting on top of them
+    expect(
+      tester.getRect(find.widgetWithText(AppCard, 'Course 1')).top,
+      greaterThanOrEqualTo(tester.getRect(find.text('All semesters')).bottom),
+    );
   });
 
   group('focus mode', () {

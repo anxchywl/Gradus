@@ -299,6 +299,9 @@ void main() {
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(find.text('Delete this assignment?'), findsOneWidget);
+    // the answer to the question is the big button, the way out is small
+    expect(find.widgetWithText(AppPrimaryButton, 'Delete'), findsOneWidget);
+    expect(find.widgetWithText(AppPrimaryButton, 'Cancel'), findsNothing);
     // the form's own Delete is behind the sheet, the confirmation's is last
     await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();

@@ -591,53 +591,47 @@ class _SyllabusCard extends StatelessWidget {
         size: AppSpacing.iconMd,
         color: accent,
       ),
-      _ImportState.idle || _ImportState.failed => const AppIcon(
+      _ImportState.idle || _ImportState.failed => AppIcon(
         AppIcons.chevronRight,
         size: AppSpacing.iconSm,
-        color: AppColors.textSecondary,
+        color: accent,
       ),
     };
 
-    return Material(
-      color: isLight ? AppColors.primaryLight : AppColors.primaryLightDark,
-      borderRadius: AppSpacing.borderRadiusDf,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppSpacing.borderRadiusDf,
-        child: Padding(
-          padding: AppSpacing.cardPadding,
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTextStyles.titleMedium.copyWith(
-                        color: gradusPrimaryText(context),
-                      ),
-                    ),
-                    for (final line in lines) ...[
-                      AppSpacing.verticalXs,
-                      Text(
-                        line.text,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: line.isProblem
-                              ? problem
-                              : AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ],
+    // the same card and the same brand-coloured label as the add row, so the
+    // one shortcut in the form reads as an action rather than a heading
+    return AppCard(
+      onTap: onTap,
+      padding: AppSpacing.cardPaddingSm,
+      backgroundColor: isLight
+          ? AppColors.primaryLight
+          : AppColors.primaryLightDark,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.button.copyWith(color: accent),
                 ),
-              ),
-              AppSpacing.horizontalMd,
-              trailing,
-            ],
+                for (final line in lines) ...[
+                  AppSpacing.verticalXs,
+                  Text(
+                    line.text,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: line.isProblem ? problem : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
+          AppSpacing.horizontalMd,
+          trailing,
+        ],
       ),
     );
   }

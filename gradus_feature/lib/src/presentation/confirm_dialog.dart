@@ -37,6 +37,8 @@ class _ConfirmSheet extends StatelessWidget {
         children: [
           GradusSheetTitle(text: message),
           AppSpacing.verticalXl,
+          // the question asked is the one the big button answers, in the same
+          // shape Save wears elsewhere; the way out sits small beside it
           GradusFormActions(
             primaryLabel: strings.delete,
             onPrimary: () => Navigator.of(context).pop(true),
