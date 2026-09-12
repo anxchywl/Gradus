@@ -53,10 +53,17 @@ flutter run \
   --dart-define=GRADUS_API_BASE_URL=http://localhost:8000
 ```
 
-`GRADUS_BACKEND` defaults to `sample`, which keeps everything on the device and
-offers no syllabus import. `remote` sends a chosen syllabus to
-`GRADUS_API_BASE_URL`, which must be https unless it is a backend on this
-machine reached from a debug build. An Android emulator sees this machine as
+| Define | Default | Meaning |
+|---|---|---|
+| `ENABLE_DEV_ACCESS` | `false` | Opens the standalone host with a placeholder session |
+| `GRADUS_ACCESS_TOKEN` | none | Development student token, passed unchanged to the backend |
+| `GRADUS_OPERATOR_ACCESS_TOKEN` | none | Distinct development operator token |
+| `GRADUS_BACKEND` | `sample` | `sample` keeps everything on the device; `remote` enables syllabus import |
+| `GRADUS_API_BASE_URL` | none | The backend `remote` reads syllabi through |
+
+Neither token has a default, so a build that forgets one fails closed rather
+than opening with a known credential. `GRADUS_API_BASE_URL` must be https unless
+it is a backend on this machine reached from a debug build. An Android emulator sees this machine as
 `10.0.2.2`, which that rule refuses, so forward the port with
 `adb reverse tcp:8000 tcp:8000` and keep `localhost`. A mistyped value shows a
 closed screen rather than quietly running without a backend.
@@ -272,5 +279,19 @@ Deliberately absent, so nobody assumes otherwise:
   exactly what happened on the way to `v0.1.2`.
 - **Migrations and backups.** Neither exists, because nothing is stored. If
   server-side persistence is ever chosen (open decision 3 in PRODUCT.md), both
-  are required before the first production write.
+  are required before the first production write - not after it.
+
+  The backup is not a design question when it comes: the sibling projects
+  already run one, and this takes the same shape rather than a new one. A
+  sidecar container on the database's own network, on a nightly cron, holding no
+  application code: `pg_dump --format custom`, proved restorable with
+  `pg_restore --list` before the file is named final, `sha256sum` beside it,
+  `age`-encrypted and copied to object storage when one is configured, and
+  anything past the retention window deleted. A separate verify script fails
+  when the newest dump is missing, fails its checksum, does not list, or is
+  older than a day, so a backup that silently stopped is an alarm rather than a
+  discovery during a restore. A restore drill belongs in the same commit.
+
+  Nothing of this is written here yet, deliberately: a dump of a database that
+  does not exist is a script nobody can run and nobody has tested.
 - **Monitoring and alerting.**

@@ -16,7 +16,12 @@ export 'src/config/gradus_scope.dart'
         createSampleDependencies,
         createSyllabusImporter;
 export 'src/config/gradus_session.dart'
-    show GradusBackend, GradusConfig, GradusSession;
+    show
+        GradusBackend,
+        GradusChrome,
+        GradusConfig,
+        GradusSession,
+        anonymousAccountId;
 export 'src/domain/assignment.dart' show Assignment;
 export 'src/domain/course.dart' show Course;
 export 'src/domain/course_grade.dart'
@@ -38,11 +43,15 @@ class GradusFeature extends StatefulWidget {
     required this.session,
     required this.dependencies,
     required this.config,
+    this.chrome = GradusChrome.own,
   });
 
   final GradusSession session;
   final GradusDependencies dependencies;
   final GradusConfig config;
+
+  // a host that supplies its own app bar mounts this with GradusChrome.host
+  final GradusChrome chrome;
 
   @override
   State<GradusFeature> createState() => _GradusFeatureState();
@@ -78,7 +87,7 @@ class _GradusFeatureState extends State<GradusFeature> {
         key: ValueKey(widget.session.accessToken),
         session: widget.session,
         controller: _controller,
-        child: const GradusScreen(),
+        child: GradusScreen(chrome: widget.chrome),
       ),
     );
   }

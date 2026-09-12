@@ -45,6 +45,7 @@ GradusDependencies createLocalDependencies({
   transcript: PreferencesTranscriptRepository(
     accountId: accountId,
     scale: scale,
+    anonymousAccountId: anonymousAccountId,
   ),
   scales: StaticGradeScaleRepository(scale),
   syllabus: syllabus,

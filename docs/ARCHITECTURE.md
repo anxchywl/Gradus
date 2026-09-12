@@ -10,7 +10,7 @@ that changes has exactly one place to change.
 
 | File | Owns |
 |---|---|
-| [../README.md](../README.md) | Purpose, setup, tests, env vars, limits worth knowing first |
+| [../README.md](../README.md) | What this is, how to run it, and the limits worth knowing first |
 | [PRODUCT.md](./PRODUCT.md) | Product behaviour and rules; what is undecided |
 | This file | Package split, layers, host contract, state, account isolation, localization, security boundaries, the control inventory, known limitations, threat model, test strategy |
 | [API.md](./API.md) | Implemented endpoints, wire shapes, error codes, versioning |
@@ -71,12 +71,49 @@ GradusFeature(
     syllabus: createSyllabusImporter(baseUri: apiBase, accessToken: token),
   ),
   config: GradusConfig.remote(baseUri: apiBase),
+  // the host already has an app bar and a surface; a second set nests
+  chrome: GradusChrome.host,
 )
 ```
+
+`GradusChrome.own` is the default and is what the standalone host runs: the
+feature supplies its own `Scaffold` and names itself in an app bar.
+`GradusChrome.host` drops both and returns the scrollable alone, for a host that
+mounts the feature in a tab it has already titled. A course pushed onto the
+navigator keeps its own chrome either way, because a pushed route has no host
+tab around it.
+
+Two things a host owes the feature in that mode: a `Material` ancestor, which a
+`Scaffold` body already is, and `resizeToAvoidBottomInset: false` on that
+scaffold. A sheet pads itself by the keyboard, and a host that lifts the screen
+behind it as well moves the form out from under the student's thumb.
 
 Syllabus import exists only when an importer is passed in; a remote config does
 not create one. `createSampleDependencies()` with `GradusConfig.sample()` runs
 the feature with nothing leaving the device.
+
+**A host that cannot issue a token passes no importer.** Extraction costs money
+per call, and every control on it - the per-account allowance and the
+idempotency store alike - is keyed on the subject the credential resolves to, so
+an endpoint reached without one has no allowance to enforce rather than a
+generous one. The alternatives were weighed and refused: a shared token compiled
+into the client is recoverable from the binary and is rejected by
+`test_ci_policy.py`, and an endpoint that mints anonymous tokens is the same open
+door one step further back, needing server-side state that does not exist. Until
+a host issues tokens, import is a development capability, and `canImportSyllabus`
+takes the affordance off the screen rather than showing one that would fail.
+
+What a host must supply before import can be turned on:
+
+| Setting | Value |
+|---|---|
+| `HOST_JWT_ALGORITHM` | `RS256`, the default; Gradus holds only the public half |
+| `HOST_JWT_ISSUER`, `HOST_JWT_AUDIENCE` | the host's own, agreed with it rather than guessed |
+| `HOST_SUBJECT_CLAIM` | the claim naming a stable per-student id |
+
+That subject is also the rate-limit key, so it has to be the same id the host
+passes as `accountId`. If the two disagree, one student's device storage and
+their server allowance are being kept under two different names.
 
 Remote configuration requires HTTPS. The standalone debug host is the only
 caller that may opt into plain HTTP, and only to a backend on the same machine.
@@ -86,6 +123,7 @@ caller that may opt into plain HTTP, and only to a backend on the same machine.
 | Authentication, token issue and refresh | Host |
 | Who the student is, and what their credential may do | Host, or whatever resolves its session |
 | Theme, locale, lifecycle, top-level navigation | Host |
+| The app bar and the surface behind the feature | Host under `GradusChrome.host`, the feature under `GradusChrome.own` |
 | Which data source the feature runs on | Host, by what it passes in |
 | GPA navigation, screens and state | Feature |
 | GPA strings, in three languages | Feature |
@@ -135,6 +173,15 @@ course-only layout that preceded semesters is read once from
 `gpa_v1_{accountId}_courses` and carried into a single unnamed semester; the old
 key is never written or destroyed, and the migration is per account like every
 other key.
+
+A host that has no accounts yet mounts the feature under `anonymousAccountId`,
+and what is written there is adopted **once**, by the first real account to
+arrive: the transcript is copied under that account's own key and
+`gpa_v2_local_adopted` records the claim. The anonymous copy is left where it
+is, as the pre-semester layout is, but the marker is what stops a second account
+on a shared device inheriting a stranger's courses. An account that already has
+a transcript of its own adopts nothing, so a claim can never overwrite real
+data.
 
 `accountId` is supplied by the host **alongside** the token and is never derived
 from it. A token must not be written to disk, not even as part of a key.
@@ -244,7 +291,7 @@ the tests named in it are the evidence.
 | 20 | Container hardening: non-root, read-only, all capabilities dropped, memory capped | `backend/Dockerfile`, `docker/docker-compose.production.yml` | not yet automated | Implemented, unverified |
 | 20a | Deployment refuses a development mechanism, a credential or a dirty tree | `deploy/preflight.sh` | not yet automated | Implemented, unverified |
 | 21 | Per-account rate limit on syllabus extraction, failing closed | `app/infrastructure/guards.py` | `test_guards.py::test_a_caller_past_the_allowance_is_refused`, `::test_a_limiter_that_cannot_decide_refuses_rather_than_allows` | Implemented, in process only |
-| 22 | Backups and restore | - | - | **Not built**, and nothing is stored |
+| 22 | Backups and restore | - | - | **Not built**: nothing is stored server-side to back up. Required in the same commit as the first server-side write; the shape it takes is in INFRASTRUCTURE.md |
 | 23 | Uploaded document capped by size, pages and extracted characters | `app/domain/syllabus.py`, `app/infrastructure/syllabus/documents.py` | `test_syllabus_domain.py`, `test_syllabus_documents.py::test_extracted_text_is_capped` | Implemented |
 | 24 | A document is identified by its bytes, not its declared type | `app/domain/syllabus.py` | `test_syllabus_api.py::test_a_file_of_an_unsupported_type_is_refused` | Implemented |
 | 25 | Extracted text stripped of controls, bidi overrides and zero-width characters, on both sides | `app/domain/syllabus.py`, `gradus_feature/lib/src/domain/syllabus.dart` | `test_syllabus_domain.py`, `syllabus_test.dart` | Implemented |

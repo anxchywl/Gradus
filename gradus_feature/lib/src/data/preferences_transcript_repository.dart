@@ -14,6 +14,7 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
   PreferencesTranscriptRepository({
     required this.accountId,
     required GradeScale scale,
+    this.anonymousAccountId,
     SharedPreferences? preferences,
   }) : _scale = scale,
        _preferences = preferences;
@@ -28,12 +29,23 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
   static const String migratedSemesterId = 'semester_migrated';
 
   final String accountId;
+
+  // the id a host uses before it knows who the student is; null when the host
+  // has always known, which is every account after the first adoption
+  final String? anonymousAccountId;
+
   final GradeScale _scale;
   SharedPreferences? _preferences;
 
   String get _key => '${_schema}_${accountId}_transcript';
 
   String get _legacyKey => '${_legacySchema}_${accountId}_courses';
+
+  String get _anonymousKey => '${_schema}_${anonymousAccountId}_transcript';
+
+  // written on the anonymous account, not the adopting one, so the claim is
+  // visible to every other account that looks
+  String get _adoptionKey => '${_schema}_${anonymousAccountId}_adopted';
 
   Future<SharedPreferences> _store() async =>
       _preferences ??= await SharedPreferences.getInstance();
@@ -42,8 +54,13 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
   Future<Transcript> load() async {
     final store = await _store();
     final raw = store.getString(_key);
-    if (raw == null || raw.isEmpty) return _migrated(store);
+    if (raw == null || raw.isEmpty) {
+      return await _adopted(store) ?? await _migrated(store);
+    }
+    return _transcriptFrom(raw);
+  }
 
+  Transcript _transcriptFrom(String raw) {
     final decoded = jsonDecode(raw);
     if (decoded is! Map<String, dynamic>) return Transcript.empty;
 
@@ -85,6 +102,27 @@ class PreferencesTranscriptRepository implements TranscriptRepository {
         'courses': transcript.courses.map(_jsonFromCourse).toList(),
       }),
     );
+  }
+
+  // a transcript written before the host knew who the student was belongs to
+  // the first account that arrives. the anonymous copy is left where it is,
+  // like the pre-semester layout, but the marker stops a second account
+  // inheriting a stranger's courses off a shared device
+  Future<Transcript?> _adopted(SharedPreferences store) async {
+    final anonymous = anonymousAccountId;
+    if (anonymous == null || anonymous == accountId) return null;
+    if (store.getString(_adoptionKey) != null) return null;
+
+    final raw = store.getString(_anonymousKey);
+    if (raw == null || raw.isEmpty) return null;
+
+    final transcript = _transcriptFrom(raw);
+    // nothing to claim, and claiming it would spend the one adoption there is
+    if (transcript.semesters.isEmpty && transcript.courses.isEmpty) return null;
+
+    await save(transcript);
+    await store.setString(_adoptionKey, accountId);
+    return transcript;
   }
 
   // the old key is left alone, so a downgrade still has what it had

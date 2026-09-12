@@ -1,3 +1,7 @@
+// a host that has no accounts yet mounts the feature under this id. the first
+// real account to arrive adopts what was written under it, once
+const String anonymousAccountId = 'local';
+
 // the feature never parses, refreshes, persists or judges this token
 class GradusSession {
   const GradusSession({required this.accessToken, required this.accountId});
@@ -9,6 +13,10 @@ class GradusSession {
 
   bool get isPresent => accessToken.isNotEmpty && accountId.isNotEmpty;
 }
+
+// who draws the app bar and the surface behind the feature. a host that mounts
+// it in a tab of its own already has both, and a second set nests
+enum GradusChrome { own, host }
 
 enum GradusBackend { sample, remote }
 

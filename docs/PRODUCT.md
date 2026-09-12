@@ -23,12 +23,16 @@ score that stays empty until the work is marked; a credit-weighted average that
 counts a letter the scale gives no points to as attempted credit only; semester
 and cumulative averages reported separately; an all-semesters view grouped by
 term; device-local persistence namespaced per account, carrying forward data
-written before semesters existed.
+written before semesters existed and data written before the host knew who the
+student was.
 
 ### Filling a course in from its syllabus
 
-A student adding a course can pick its syllabus instead of typing it. The
-file is read on the server and comes back as a proposal: course code, title,
+A student adding a course can pick its syllabus instead of typing it, wherever
+the host that mounts the feature can issue a token the backend verifies. No host
+does yet, so today this is reachable from a development build only, and every
+other build simply does not offer it. The file is read on the server and comes
+back as a proposal: course code, title,
 credit value with the unit as printed, and one assignment per row of the
 assessment table with its weight. Nothing is applied on its own - the fields are
 filled in for the student to check, and nothing is stored until Save. The
@@ -172,8 +176,11 @@ Each of these changes what gets built. None should be guessed.
    says so on screen. A target-driven projection - "what must I score to reach
    3.5" - is a different calculation and still undecided.
 7. **How a host would mount this** - a tab or a route - which decides whether
-   the feature keeps its own navigation. The standalone prototype does not have
-   to answer this, but the answer changes the presentation layer when it comes.
+   the feature keeps its own navigation. The chrome half of that is settled:
+   `GradusChrome.host` drops the feature's app bar and scaffold for a host that
+   has its own. What is still open is navigation, because a host that mounts the
+   feature in a tab and a host that pushes it as a route want the course detail
+   reached differently.
 
 ## The grade scale
 

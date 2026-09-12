@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../application/gradus_controller.dart';
 import '../config/gradus_scope.dart';
+import '../config/gradus_session.dart';
 import '../domain/course.dart';
 import '../domain/course_grade.dart';
 import '../domain/semester.dart';
@@ -16,7 +17,9 @@ import 'gradus_widgets.dart';
 import 'semester_form.dart';
 
 class GradusScreen extends StatefulWidget {
-  const GradusScreen({super.key});
+  const GradusScreen({super.key, this.chrome = GradusChrome.own});
+
+  final GradusChrome chrome;
 
   @override
   State<GradusScreen> createState() => _GpaScreenState();
@@ -120,23 +123,30 @@ class _GpaScreenState extends State<GradusScreen> {
     final strings = GradusStrings.of(context);
     final controller = GradusScope.of(context).controller;
 
+    final body = AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => CustomScrollView(
+        slivers: [
+          // the header gives the list its room back on the way down
+          // an account with nothing in it gets the screen to its one way
+          // forward, without a title over it
+          // a host that mounts this in its own tab names the feature itself
+          if (widget.chrome == GradusChrome.own &&
+              controller.semesters.isNotEmpty)
+            AppSliverAppBar(title: strings.featureTitle),
+          ..._content(context, controller, strings),
+        ],
+      ),
+    );
+
+    // the host's own scaffold is the surface; a second one would nest
+    if (widget.chrome == GradusChrome.host) return body;
+
     return Scaffold(
       // the sheet over it pads itself by the keyboard; the screen behind
       // must not rise as well
       resizeToAvoidBottomInset: false,
-      body: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) => CustomScrollView(
-          slivers: [
-            // the header gives the list its room back on the way down
-            // an account with nothing in it gets the screen to its one way
-            // forward, without a title over it
-            if (controller.semesters.isNotEmpty)
-              AppSliverAppBar(title: strings.featureTitle),
-            ..._content(context, controller, strings),
-          ],
-        ),
-      ),
+      body: body,
     );
   }
 

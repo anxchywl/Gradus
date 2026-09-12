@@ -63,6 +63,31 @@ Widget _host({
   ),
 );
 
+// a superapp tab: the host draws the chrome and hands the feature the body
+Widget _hostTab({
+  required TranscriptRepository repository,
+  GradusChrome chrome = GradusChrome.host,
+}) => MaterialApp(
+  supportedLocales: supportedGradusLocales,
+  localizationsDelegates: const [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  home: Scaffold(
+    appBar: AppBar(title: const Text('Superapp')),
+    body: GradusFeature(
+      session: const GradusSession(accessToken: 'a-token', accountId: 'me'),
+      dependencies: GradusDependencies(
+        transcript: repository,
+        scales: const _FakeScales(),
+      ),
+      config: const GradusConfig.sample(),
+      chrome: chrome,
+    ),
+  ),
+);
+
 Semester _semester(String id, String name, {int position = 1}) =>
     Semester(id: id, name: name, position: position);
 
@@ -1157,6 +1182,65 @@ void main() {
         expect(_inCourseForm(label), findsOneWidget, reason: label);
       }
       expect(_inCourseForm('Done'), findsNothing);
+    });
+  });
+
+  group('mounted inside a host', () {
+    testWidgets('the feature draws no app bar of its own', (tester) async {
+      await tester.pumpWidget(
+        _hostTab(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppSliverAppBar), findsNothing);
+      expect(find.text('Superapp'), findsOneWidget);
+    });
+
+    testWidgets('the feature nests no second scaffold', (tester) async {
+      await tester.pumpWidget(
+        _hostTab(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Scaffold), findsOneWidget);
+    });
+
+    testWidgets('the courses still render under the host', (tester) async {
+      await tester.pumpWidget(
+        _hostTab(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Course 1'), findsOneWidget);
+      expect(find.text('Fall 2026'), findsWidgets);
+    });
+
+    testWidgets('a host that asks for none keeps its own', (tester) async {
+      await tester.pumpWidget(
+        _hostTab(
+          repository: _FakeTranscriptRepository(
+            transcript: _oneTerm([_course('1', 3)]),
+          ),
+          chrome: GradusChrome.own,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // the default is still a feature that stands on its own
+      expect(find.byType(AppSliverAppBar), findsOneWidget);
+      expect(find.byType(Scaffold), findsNWidgets(2));
     });
   });
 }

@@ -11,6 +11,15 @@ PreferencesTranscriptRepository _repository(String accountId) =>
       scale: const FourPointScale(),
     );
 
+// what a host that has accounts builds: the same store, plus the id the
+// feature was mounted under before anyone had signed in
+PreferencesTranscriptRepository _signedIn(String accountId) =>
+    PreferencesTranscriptRepository(
+      accountId: accountId,
+      scale: const FourPointScale(),
+      anonymousAccountId: anonymousAccountId,
+    );
+
 Semester _semester([String id = 'fall']) =>
     Semester(id: id, name: 'Fall 2026', position: 1);
 
@@ -383,6 +392,78 @@ void main() {
       });
 
       expect((await _repository('student-2').load()).courses, isEmpty);
+    });
+  });
+
+  group('adopting an anonymous transcript', () {
+    Future<void> anonymousTranscript() => PreferencesTranscriptRepository(
+      accountId: anonymousAccountId,
+      scale: const FourPointScale(),
+    ).save(Transcript(semesters: [_semester()], courses: [_course('1')]));
+
+    test('the first account to arrive adopts what was already there', () async {
+      await anonymousTranscript();
+
+      final loaded = await _signedIn('student-1').load();
+
+      expect(loaded.courses.single.title, 'Course 1');
+      expect(loaded.semesters.single.name, 'Fall 2026');
+    });
+
+    test('an adopted transcript is written under the account', () async {
+      await anonymousTranscript();
+      await _signedIn('student-1').load();
+
+      // the anonymous id is gone from this repository, as it is for every
+      // account after the first, and the transcript still loads
+      final again = await _repository('student-1').load();
+
+      expect(again.courses.single.title, 'Course 1');
+    });
+
+    test('a second account does not inherit the first one\'s claim', () async {
+      await anonymousTranscript();
+      await _signedIn('student-1').load();
+
+      final other = await _signedIn('student-2').load();
+
+      expect(
+        other.courses,
+        isEmpty,
+        reason: 'a shared device must not hand one student another\'s courses',
+      );
+    });
+
+    test('an account that already has a transcript adopts nothing', () async {
+      await anonymousTranscript();
+      await _signedIn(
+        'student-1',
+      ).save(Transcript(semesters: [_semester('spring')], courses: const []));
+
+      final loaded = await _signedIn('student-1').load();
+
+      expect(loaded.courses, isEmpty);
+      expect(loaded.semesters.single.id, 'spring');
+    });
+
+    test('the anonymous account does not adopt from itself', () async {
+      await anonymousTranscript();
+
+      final loaded = await _signedIn(anonymousAccountId).load();
+
+      expect(loaded.courses.single.title, 'Course 1');
+      // nothing was claimed, so an account signing in later still can
+      expect(
+        (await _signedIn('student-1').load()).courses.single.title,
+        'Course 1',
+      );
+    });
+
+    test('an empty anonymous store leaves the claim open', () async {
+      await _signedIn('student-1').load();
+      await anonymousTranscript();
+
+      expect((await _signedIn('student-2').load()).courses, hasLength(1));
     });
   });
 }
