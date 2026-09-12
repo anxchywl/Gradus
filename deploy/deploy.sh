@@ -23,7 +23,7 @@ if [ "$target" = "shared-host" ]; then
   compose="$compose -f $repo_dir/docker/docker-compose.shared-host.yml"
 fi
 
-previous_image=$($compose ps -q backend | xargs -r docker inspect --format '{{.Config.Image}}')
+previous_image=$($compose ps -q gradus-api | xargs -r docker inspect --format '{{.Config.Image}}')
 
 DEPLOYMENT_TARGET=$target ENV_FILE=$env_file "$repo_dir/deploy/preflight.sh"
 docker build --pull --tag "$image" --file "$repo_dir/backend/Dockerfile" "$repo_dir"
@@ -32,7 +32,7 @@ rollback() {
   status=$?
   if [ "$status" -ne 0 ] && [ -n "$previous_image" ]; then
     echo "deployment failed; restoring previous backend image" >&2
-    BACKEND_IMAGE=$previous_image $compose up -d --no-deps backend
+    BACKEND_IMAGE=$previous_image $compose up -d --no-deps gradus-api
   fi
   exit "$status"
 }

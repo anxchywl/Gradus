@@ -1,8 +1,12 @@
 name: gradus
 
 services:
-  backend:
+  gradus-api:
     image: ${BACKEND_IMAGE:-gradus-backend:local}
+    # named explicitly: this service shares a network with several other
+    # compose projects, and a bare `backend` service name would collide
+    # with theirs in the shared DNS namespace
+    container_name: gradus-api
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:?APP_ENV is required}

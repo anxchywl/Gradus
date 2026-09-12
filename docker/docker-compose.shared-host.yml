@@ -3,7 +3,7 @@
 name: gradus
 
 services:
-  backend:
+  gradus-api:
     networks:
       - edge
       - wished-proxy
