@@ -604,26 +604,28 @@ void main() {
       matching: find.text(text),
     );
 
-    // nothing in a widget test raises the view's insets on its own
+    // nothing in a widget test raises the view's insets on its own, and the
+    // form no longer opens with a field already holding the keyboard
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     addTearDown(tester.view.reset);
+    await tester.tap(find.byType(TextFormField).first);
     await tester.pumpAndSettle();
     await tester.testTextInput.receiveAction(TextInputAction.next);
     await tester.pumpAndSettle();
 
     expect(inForm('Assignment name'), findsNothing);
 
-    await tester.tap(inForm('Back'));
+    await tester.tap(inForm('Done'));
     await tester.pumpAndSettle();
 
     expect(
       inForm('Save'),
       findsOneWidget,
       reason:
-          'the form opens on its first field, and that field coming back '
-          'must not take the keyboard again',
+          'leaving focus mode brings the whole form back, and the field it '
+          'came from must not take the keyboard again',
     );
-    expect(inForm('Back'), findsNothing);
+    expect(inForm('Done'), findsNothing);
   });
 
   testWidgets('a score keeps its total beside it while the keyboard is up', (
@@ -646,7 +648,7 @@ void main() {
 
     expect(inForm('Weight'), findsNothing);
     expect(inForm('Save'), findsNothing);
-    expect(inForm('Back'), findsOneWidget);
+    expect(inForm('Done'), findsOneWidget);
     expect(
       inForm('Max score'),
       findsOneWidget,

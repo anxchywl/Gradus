@@ -165,7 +165,6 @@ class _AssignmentFormState extends State<AssignmentForm> {
                       child: TextFormField(
                         controller: _name,
                         focusNode: _focus.nodeFor(_Field.name),
-                        autofocus: _focus.takeAutofocus(),
                         textInputAction: TextInputAction.next,
                         onFieldSubmitted: (_) => _focus.moveTo(_Field.weight),
                         validator: (value) => (value ?? '').trim().isEmpty
@@ -243,8 +242,8 @@ class _AssignmentFormState extends State<AssignmentForm> {
                   AppSpacing.verticalXl,
                   FocusModeActions(
                     isTyping: _focus.isTyping,
-                    backLabel: strings.back,
-                    onBack: _focus.release,
+                    doneLabel: strings.done,
+                    onDone: _focus.release,
                     actions: GradusFormActions(
                       primaryLabel: strings.save,
                       onPrimary: _submit,

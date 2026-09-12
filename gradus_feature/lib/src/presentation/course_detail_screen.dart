@@ -129,6 +129,9 @@ class CourseDetailScreen extends StatelessWidget {
         final scale = controller.scale;
         if (course == null || scale == null) {
           return Scaffold(
+            // the sheet over it pads itself by the keyboard; the screen behind
+            // must not rise as well
+            resizeToAvoidBottomInset: false,
             appBar: AppAppBar(
               title: strings.featureTitle,
               showBackButton: true,
@@ -144,6 +147,9 @@ class CourseDetailScreen extends StatelessWidget {
 
         final resolved = calculateCourseGrade(course, scale);
         return Scaffold(
+          // the sheet over it pads itself by the keyboard; the screen behind
+          // must not rise as well
+          resizeToAvoidBottomInset: false,
           body: CustomScrollView(
             slivers: [
               // the header gives the list its room back on the way down

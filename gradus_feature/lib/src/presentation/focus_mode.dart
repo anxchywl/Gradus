@@ -15,7 +15,6 @@ class SheetFocusMode extends ChangeNotifier {
   final Map<Object, FocusNode> _nodes = {};
   Object? _typingIn;
   bool _keyboardVisible = false;
-  bool _autofocusTaken = false;
 
   // keyed on the keyboard being on screen, not on focus alone: a field can hold
   // focus with no keyboard showing, as on a simulator with a hardware keyboard,
@@ -56,14 +55,6 @@ class SheetFocusMode extends ChangeNotifier {
     notifyListeners();
   }
 
-  // once only: a field that opens the form comes back after a fold, and taking
-  // the keyboard again then would leave no way out of focus mode
-  bool takeAutofocus() {
-    if (_autofocusTaken) return false;
-    _autofocusTaken = true;
-    return true;
-  }
-
   // a folded field is out of the tree, so the next-field key opens its fold
   // first and asks for focus once it is back
   void moveTo(Object id) {
@@ -75,7 +66,7 @@ class SheetFocusMode extends ChangeNotifier {
     );
   }
 
-  // what Back does: the keyboard goes, and the whole form comes back with it
+  // what Done does: the keyboard goes, and the whole form comes back with it
   // at once rather than waiting for the keyboard to finish leaving
   void release() {
     for (final node in _nodes.values) {
@@ -148,20 +139,20 @@ class FocusGap extends StatelessWidget {
   );
 }
 
-// while typing, the one button on offer leads back out to the whole form; it
-// takes the place of the sheet's own actions, at the same height
+// while typing, the one button on offer puts the keyboard away and brings the
+// whole form back; it takes the place of the sheet's own actions
 class FocusModeActions extends StatelessWidget {
   const FocusModeActions({
     super.key,
     required this.isTyping,
-    required this.backLabel,
-    required this.onBack,
+    required this.doneLabel,
+    required this.onDone,
     required this.actions,
   });
 
   final bool isTyping;
-  final String backLabel;
-  final VoidCallback onBack;
+  final String doneLabel;
+  final VoidCallback onDone;
 
   // what sits there when the keyboard is down
   final Widget actions;
@@ -192,9 +183,10 @@ class FocusModeActions extends StatelessWidget {
     ),
     child: isTyping
         ? AppPrimaryButton(
-            key: const ValueKey<String>('focus-mode-back'),
-            text: backLabel,
-            onPressed: onBack,
+            key: const ValueKey<String>('focus-mode-done'),
+            size: AppButtonSize.medium,
+            text: doneLabel,
+            onPressed: onDone,
           )
         : KeyedSubtree(
             key: const ValueKey<String>('focus-mode-actions'),

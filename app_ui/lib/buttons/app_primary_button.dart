@@ -64,7 +64,7 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
         curve: Curves.easeInOutCubic,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: AppSpacing.borderRadiusDf,
+            borderRadius: AppSpacing.borderRadiusMd,
             // a soft glow in the button's own colour lifts it off the surface,
             // and goes with the colour when the button cannot be pressed
             boxShadow: effectiveOnPressed == null
@@ -89,7 +89,7 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
                 disabledForegroundColor: AppColors.white.withValues(alpha: 0.7),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: AppSpacing.borderRadiusDf,
+                  borderRadius: AppSpacing.borderRadiusMd,
                 ),
                 padding: widget.size.padding,
               ),

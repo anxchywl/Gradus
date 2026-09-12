@@ -229,6 +229,8 @@ class GradusFormActions extends StatelessWidget {
         : AppColors.errorTextDark;
     final primary = AppPrimaryButton(
       text: primaryLabel,
+      // a sheet's commitment is a step down from a screen's own call to action
+      size: AppButtonSize.medium,
       isEnabled: isPrimaryEnabled,
       color: isPrimaryDestructive ? destructive : null,
       onPressed: onPrimary,
@@ -291,7 +293,7 @@ class _CompactAction extends StatelessWidget {
             borderRadius: AppSpacing.borderRadiusDf,
             child: SizedBox(
               // level with the commitment beside it
-              height: AppSpacing.buttonHeightLg,
+              height: AppSpacing.buttonHeightDf,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                 child: Center(

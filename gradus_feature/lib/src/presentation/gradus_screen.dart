@@ -121,6 +121,9 @@ class _GpaScreenState extends State<GradusScreen> {
     final controller = GradusScope.of(context).controller;
 
     return Scaffold(
+      // the sheet over it pads itself by the keyboard; the screen behind
+      // must not rise as well
+      resizeToAvoidBottomInset: false,
       body: AnimatedBuilder(
         animation: controller,
         builder: (context, _) => CustomScrollView(

@@ -108,7 +108,6 @@ class _SemesterFormState extends State<SemesterForm> {
                     child: TextFormField(
                       controller: _name,
                       focusNode: _focus.nodeFor(_Field.name),
-                      autofocus: _focus.takeAutofocus(),
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _submit(),
                       validator: (value) => (value ?? '').trim().isEmpty
@@ -119,8 +118,8 @@ class _SemesterFormState extends State<SemesterForm> {
                   AppSpacing.verticalXl,
                   FocusModeActions(
                     isTyping: _focus.isTyping,
-                    backLabel: strings.back,
-                    onBack: _focus.release,
+                    doneLabel: strings.done,
+                    onDone: _focus.release,
                     actions: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

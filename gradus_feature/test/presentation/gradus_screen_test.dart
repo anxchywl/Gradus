@@ -1102,14 +1102,14 @@ void main() {
         ]) {
           expect(_inCourseForm(gone), findsNothing, reason: gone);
         }
-        expect(_inCourseForm('Back'), findsOneWidget);
+        expect(_inCourseForm('Done'), findsOneWidget);
 
-        await tester.tap(_inCourseForm('Back'));
+        await tester.tap(_inCourseForm('Done'));
         await tester.pumpAndSettle();
 
         expect(_inCourseForm('Save'), findsOneWidget);
         expect(_inCourseForm('Semester'), findsOneWidget);
-        expect(_inCourseForm('Back'), findsNothing);
+        expect(_inCourseForm('Done'), findsNothing);
       },
     );
 
@@ -1127,7 +1127,7 @@ void main() {
       expect(_inCourseForm('Course code'), findsOneWidget);
       expect(_inCourseForm('Course'), findsNothing);
       expect(
-        _inCourseForm('Back'),
+        _inCourseForm('Done'),
         findsOneWidget,
         reason:
             'a folded field is out of the tree, so the key that walks the '
@@ -1141,7 +1141,7 @@ void main() {
       _raiseKeyboard(tester);
       await tester.tap(find.byType(TextFormField).at(0));
       await tester.pumpAndSettle();
-      await tester.tap(_inCourseForm('Back'));
+      await tester.tap(_inCourseForm('Done'));
       await tester.pumpAndSettle();
 
       expect(find.text('MATH 273'), findsOneWidget);
@@ -1156,7 +1156,7 @@ void main() {
       for (final label in const ['Course code', 'Semester', 'Save']) {
         expect(_inCourseForm(label), findsOneWidget, reason: label);
       }
-      expect(_inCourseForm('Back'), findsNothing);
+      expect(_inCourseForm('Done'), findsNothing);
     });
   });
 }

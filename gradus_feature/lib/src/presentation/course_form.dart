@@ -536,8 +536,8 @@ class _CourseFormState extends State<CourseForm> {
         AppSpacing.verticalXl,
         FocusModeActions(
           isTyping: _focus.isTyping,
-          backLabel: strings.back,
-          onBack: _focus.release,
+          doneLabel: strings.done,
+          onDone: _focus.release,
           actions: GradusFormActions(
             primaryLabel: strings.save,
             onPrimary: _submit,
