@@ -50,23 +50,24 @@ once it is saved, where each can be edited or removed like any other.
 - The grading table in a syllabus is not imported. Which scale applies is open
   decision 1 below.
 
-**Why a model reads it rather than a parser.** Three real syllabi share no
-template: two sit on the NU Course Specification Form and disagree about the
-assessment table's columns and numbering anyway, and the third is an
-instructor's Word document that states credits in a sentence and carries four
-other assessment-shaped tables - a weekly schedule, a table of contents, a
-percentage-range grading table, and policy prose about late penalties. A rule
-parser finds the wrong table before the right one, and fails worst on exactly
-the document that needs it most. The same course changes shape again between
+**Why a model reads it rather than a parser.** Four real syllabi share no
+template: three sit on the NU Course Specification Form, one per term of the
+same course, and disagree about the assessment table's columns and numbering
+anyway, and the fourth is an instructor's own document that never states credits
+at all and carries four other assessment-shaped tables - a weekly schedule, a
+table of contents, a percentage-range grading table, and policy prose about late
+penalties. A rule parser finds the wrong table before the right one, and fails
+worst on exactly the document that needs it most. The same course changes shape again between
 instructors and between terms, so there is no stable layout to parse even within
 one course code.
 
 So the file is read on the server by a model. Which model is configuration
 rather than code - the provider and the model id are both settings, and four
 providers are supported. The default is free to run within its provider's rate
-limits, and reads the five syllabi in `backend/evals/` exactly: every field and
+limits, and reads the five cases in `backend/evals/` exactly: every field and
 every assessment row, on repeated runs. That is a real result on a small
-sample rather than a guarantee - five documents across two layouts - so a
+sample rather than a guarantee - four documents across two layouts, one of them
+read again as a Word conversion of itself - so a
 document unlike them is still an open question, and about a cent per import buys
 the answer for any candidate that replaces it.
 

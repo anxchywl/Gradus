@@ -76,8 +76,8 @@ One command runs everything CI runs:
 
 | Stage | Command |
 |---|---|
-| Backend format | `uv run --frozen ruff format --check app tests` |
-| Backend lint | `uv run --frozen ruff check app tests` |
+| Backend format | `uv run --frozen ruff format --check app evals tests` |
+| Backend lint | `uv run --frozen ruff check app evals tests` |
 | Backend types | `uv run --frozen mypy app` |
 | Backend scan | `uv run --frozen bandit -q -r app` |
 | Backend tests | `uv run --frozen pytest --cov=app --cov-fail-under=90 -q` |
@@ -134,7 +134,7 @@ SYLLABUS_API_KEY=... uv run python -m evals.run \
 
 It runs the same reader, prompt and schema the service uses, so what it measures
 is the pipeline rather than a copy of it. Each case is one document:
-`evals/cases/<name>.json` holds the expected values, and the PDF it names sits in
+`evals/cases/<name>.json` holds the expected values, and the file it names sits in
 `evals/corpus/`, which is **not committed** - a syllabus carries an instructor's
 name and contact details, and the expectations are enough to reproduce a run
 without it. A case whose document is absent is skipped rather than failed.

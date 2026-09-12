@@ -310,9 +310,9 @@ Read this before assuming the service is deployable.
   upload. Nothing else in the app says it either, so a store listing or a
   privacy notice is where it would have to be stated.
 - **Extraction quality varies with the document.** Syllabi share no layout; the
-  three seen so far span two unrelated templates and a free-form Word document,
-  and the table changes again with the instructor and the term for the same
-  course. A partial fill is a normal outcome, the course title is the field most
+  four seen so far span the NU Course Specification Form and one instructor's
+  free-form document, and the table changes again with the instructor and the
+  term for the same course. A partial fill is a normal outcome, the course title is the field most
   often wrong, and the assessment table is the part that reads most reliably.
   Nothing is applied without the student confirming it.
 - **Extraction is measured on five documents, which is not many.** The
@@ -326,7 +326,7 @@ Read this before assuming the service is deployable.
   compatibility endpoint carries a schema of almost entirely optional fields
   intact, which was the thing in doubt.
 
-  What that does not establish is behaviour on a document unlike these three.
+  What that does not establish is behaviour on a document unlike these four.
   The sample is two templates - one institutional form seen in three terms, and
   one free-form document - so it shows the right assessment table being found
   next to a letter-grade table and a weekly schedule, and nothing about a layout
@@ -340,8 +340,8 @@ Read this before assuming the service is deployable.
   does cost them is a slot in their extraction allowance, which is claimed
   before the call.
 
-  Latency is the part worth watching: those nine calls ranged from 2.6 to 14.0
-  seconds, and the student is waiting through it.
+  Latency is the part worth watching: the measured calls ranged from 2.6 to
+  14.0 seconds, and the student is waiting through it.
 - **No projected grade.** Assuming the current average continues over the
   remaining weight evaluates to the current average itself, so shipping it as a
   separate figure would dress a restatement up as a forecast. `Max possible` is
